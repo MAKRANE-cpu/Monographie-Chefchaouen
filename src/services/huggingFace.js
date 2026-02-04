@@ -32,11 +32,11 @@ export const getHFResponse = async (apiKey, history, message, contextData) => {
             2. Si la donnée n'est pas dans le volet actuel, suggère le volet le plus probable.
             
             ### CONSIGNES DE RÉPONSE :
-            1. **VISION GLOBALE OBLIGATOIRE** : Pour la "culture dominante", examine TOUS les volets du "BILAN PROVINCIAL PAR VOLET".
-            2. **ACCURACY (MATHS)** : Utilise EXCLUSIVEMENT les chiffres pré-calculés dans le "BILAN PROVINCIAL PAR VOLET" pour les totaux provinciaux.
-            3. **DÉTAILS PAR COMMUNE** : Si l'utilisateur demande "quelle commune" ou un classement, lis la section "DÉTAILS PAR COMMUNE". Format: 'Clé:Valeur|Clé:Valeur'.
-            4. **CONCISION** : Synthétise. Ne liste pas tout.
-            5. **RECONNAISSANCE** : Si l'utilisateur te dit qu'un chiffre est faux (ex: "l'orge n'est pas second"), vérifie soigneusement TOUS les chiffres du bilan provincial avant de répondre.
+            1. **PRIORITÉ ABSOLUE** : Utilise TOUJOURS la section <PROVINCIAL_TOTALS_VERIFIED> pour répondre aux questions sur les totaux provinciaux ou la culture dominante.
+            2. **CLASSEMENTS ET COMMUNES** : Utilise la section <DÉTAILS_COMMUNES_POUR_CLASSEMENT> UNIQUEMENT pour identifier une commune spécifique (ex: 'quelle commune a le plus de X ?').
+            3. **FORMAT DES DÉTAILS** : Les détails sont au format 'Clé:Valeur|Clé:Valeur'. Lis-les attentivement pour trouver le maximum.
+            4. **CONCISION** : Ne liste pas les communes une par une. Donne le nom de la commune gagnante et son chiffre.
+            5. **RECONNAISSANCE** : Si l'utilisateur conteste un chiffre, compare le chiffre cité avec le 'TOTAL PROVINCE' dans la section vérifiée.
             6. FORMAT : Commence TOUJOURS par "Action : [Analyse globale des volets X, Y]...".
 
             DONNÉES LOCALES (Province de Chefchaouen) :

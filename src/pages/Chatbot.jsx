@@ -96,10 +96,33 @@ const Chatbot = () => {
             }
 
             // STEP 3: Format Context (Dense & Clean) + GROUPED PROVINCIAL AGGREGATION
-            const provincialGroups = {}; // { "Céréales": { "blé tendre": 39000 }, ... }
+            const provincialGroups = {};
             const isGlobal = detectedGid && detectedGid.startsWith('GLOBAL_');
 
-            // Helper to normalize keys (remove accents and lowercase) for math accuracy
+            // Helper to transform technical CSV headers into readable labels
+            const headerLabelMap = {
+                'sup_bt_ha': 'Blé Tendre (ha)',
+                'sup_bd_ha': 'Blé Dur (ha)',
+                'sup_orge_ha': 'Orge (ha)',
+                'sup_maïs_ha': 'Maïs (ha)',
+                'sup_avoine_ha': 'Avoine (ha)',
+                'sup_p.terre_ha': 'Pomme de Terre (ha)',
+                'sup_p.terre': 'Pomme de Terre',
+                'sup_oignon_ha': 'Oignon (ha)',
+                'sup_tomate_ha': 'Tomate (ha)',
+                'sup_ail_ha': 'Ail (ha)',
+                'sup_piment_ha': 'Piment (ha)',
+                'sup_aubergine_ha': 'Aubergine (ha)',
+                'sup_choux_ha': 'Choux (ha)',
+                'sup_courgette_ha': 'Courgette (ha)',
+                'rdt_bt': 'Rendement Blé Tendre',
+                'rdt_bd': 'Rendement Blé Dur',
+                'rdt_orge': 'Rendement Orge',
+                'rdt_p.terre': 'Rendement Pomme de Terre',
+                'rdt_oignon': 'Rendement Oignon',
+                'sup_pomme de terre': 'Pomme de Terre (ha)'
+            };
+
             const normalizeKey = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
 
             const dynamicRows = targetData.map(r => {
@@ -113,31 +136,26 @@ const Chatbot = () => {
                     const lowK = k.toLowerCase();
                     if (lowK.includes('id') || lowK.includes('code') || k === 'index' || k === '_volet') return;
 
-                    // Clean header for AI display but keep original for summation normalization
-                    let cleanKey = k.includes(':') ? k.split(':').pop().trim() : k;
-                    if (k.includes('%')) cleanKey += " (%)";
-                    if (k.toLowerCase().includes(' ha')) cleanKey += " (ha)";
+                    // Clean and map technical headers
+                    const normK = normalizeKey(k);
+                    let cleanKey = headerLabelMap[normK] || (k.includes(':') ? k.split(':').pop().trim() : k);
 
-                    // Logic for summation (strictly numeric values that aren't percentages)
+                    if (k.includes('%') && !cleanKey.includes('%')) cleanKey += " (%)";
+                    if (lowK.includes(' ha') && !cleanKey.includes('ha')) cleanKey += " (ha)";
+
+                    // Logic for summation
                     const numericVal = parseFloat(String(val).replace(/[^0-9.,]/g, '').replace(',', '.'));
                     if (!isNaN(numericVal) && !cleanKey.includes('%')) {
-                        const normK = normalizeKey(cleanKey);
-                        // Store math using normalized key but display using cleanKey
-                        if (!provincialGroups[sourceVolet][normK]) {
-                            provincialGroups[sourceVolet][normK] = { total: 0, label: cleanKey };
+                        const sumK = normalizeKey(cleanKey);
+                        if (!provincialGroups[sourceVolet][sumK]) {
+                            provincialGroups[sourceVolet][sumK] = { total: 0, label: cleanKey };
                         }
-                        provincialGroups[sourceVolet][normK].total += numericVal;
+                        provincialGroups[sourceVolet][sumK].total += numericVal;
                     }
 
-                    // Always keep commune-level data but make it super compact
+                    // Strict deduplication based on normalized key
                     const existingKey = Object.keys(cleanedRow).find(ek => normalizeKey(ek) === normalizeKey(cleanKey));
-                    if (existingKey) {
-                        if (typeof val === 'number' && typeof cleanedRow[existingKey] === 'number') {
-                            cleanedRow[existingKey] += val;
-                        } else {
-                            cleanedRow[existingKey] = `${cleanedRow[existingKey]}, ${val}`;
-                        }
-                    } else {
+                    if (!existingKey) {
                         cleanedRow[cleanKey] = val;
                     }
                 });
@@ -145,24 +163,25 @@ const Chatbot = () => {
             });
 
             // Build a very strong hierarchical Provincial Summary
-            let provincialSummaryStr = "### BILAN PROVINCIAL PAR VOLET (CALCULS MATHÉMATIQUES VÉRIFIÉS) :\n";
+            let provincialSummaryStr = "<PROVINCIAL_TOTALS_VERIFIED>\n";
             Object.entries(provincialGroups).forEach(([volet, entries]) => {
-                provincialSummaryStr += `\nVOLET : ${volet}\n`;
+                provincialSummaryStr += `\n--- Volet: ${volet} ---\n`;
                 // Sort by total for dominant cultures
                 const sorted = Object.values(entries).sort((a, b) => b.total - a.total);
                 sorted.forEach(e => {
                     if (e.total > 0) {
-                        provincialSummaryStr += `- ${e.label} : ${e.total.toLocaleString('fr-FR')} (Total Provincial)\n`;
+                        provincialSummaryStr += `- ${e.label} : ${e.total.toLocaleString('fr-FR')} (TOTAL PROVINCE)\n`;
                     }
                 });
             });
+            provincialSummaryStr += "</PROVINCIAL_TOTALS_VERIFIED>";
 
-            // Compact details string for ALL rows (Essential for "Top 1" or "Commune" questions)
+            // Compact details string for ALL rows (Essential for ranking)
             const rowsStr = dynamicRows.map(row =>
                 Object.entries(row).map(([k, v]) => `${k}:${v}`).join('|')
             ).join('\n');
 
-            const contextStr = `${provincialSummaryStr}\n### DÉTAILS PAR COMMUNE (DÉLÉGATION À L'IA POUR LE TRI) :\n${rowsStr}`;
+            const contextStr = `${provincialSummaryStr}\n\n<DÉTAILS_COMMUNES_POUR_CLASSEMENT>\n${rowsStr}\n</DÉTAILS_COMMUNES_POUR_CLASSEMENT>`;
 
             // Remove the temporary routing message
             setMessages(prev => prev.slice(0, -1));
