@@ -44,7 +44,28 @@ const Chatbot = () => {
             let targetData = useAppStore.getState().data;
 
             // STEP 2: Fetch and use the correct data
-            if (detectedGid) {
+            if (detectedGid && detectedGid.startsWith('GLOBAL_')) {
+                const category = detectedGid === 'GLOBAL_VEGETAL' ? 'Végétal' : 'Animal';
+                const relevantConfigs = SHEET_CONFIG.filter(c => c.category === category);
+
+                setMessages(prev => {
+                    const next = [...prev];
+                    next[next.length - 1].content = `🌐 Analyse globale du volet **${category}** (${relevantConfigs.length} modules)...`;
+                    return next;
+                });
+
+                const allData = await useAppStore.getState().loadAllSheets(relevantConfigs);
+
+                // Merge all rows from these sheets
+                targetData = [];
+                relevantConfigs.forEach(c => {
+                    if (allData[c.gid]) {
+                        // Tag each row with its source label for AI clarity
+                        const taggedRows = allData[c.gid].map(r => ({ ...r, "_volet": c.label }));
+                        targetData.push(...taggedRows);
+                    }
+                });
+            } else if (detectedGid) {
                 const configItem = SHEET_CONFIG.find(c => c.gid === detectedGid);
                 setMessages(prev => {
                     const next = [...prev];

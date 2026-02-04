@@ -32,14 +32,13 @@ export const getHFResponse = async (apiKey, history, message, contextData) => {
             2. Si la donnée n'est pas dans le volet actuel, suggère le volet le plus probable.
             
             ### CONSIGNES DE RÉPONSE :
-            1. **CONCISION ABSOLUE** : Ne liste JAMAIS toutes les communes une par une sauf si l'utilisateur le demande explicitement (ex: "détaille par commune"). Fais des synthèses provinciales.
-            2. **DÉFINITION "CULTURES"** : Le terme "cultures" englobe les volets : Céréales, Légumineuses, Maraîchage, Arbres Fruitiers, et Fourrages. Si tu ne vois qu'un seul volet, précise qu'il en existe d'autres.
-            3. Utilise UNIQUEMENT les données fournies.
-            4. "SAU" = Superficie Agricole Utile.
+            1. **CONCISION ABSOLUE** : Ne liste JAMAIS toutes les communes une par une sauf si l'utilisateur le demande. Fais des synthèses provinciales (SOMME TOTALE).
+            2. **DÉFINITION "CULTURES"** : Le terme "cultures" englobe les volets : Céréales, Légumineuses, Maraîchage, Arbres Fruitiers, et Fourrages.
+            3. **MULTI-VOLETS** : Si tu vois l'indicateur **_volet**, cela signifie que tu as des données provenant de plusieurs feuilles. Utilise-les pour faire une réponse complète.
+            4. Utilise UNIQUEMENT les données fournies.
             5. Les en-têtes incluent l'unité : **(%)** ou **(ha)**.
-            6. Si une valeur est vide ou nulle, cela signifie **0**.
-            7. FORMAT : Commence TOUJOURS par "Action : [Recherche dans le volet X]...".
-            8. **RÈGLE D'OR** : Synthétise les données. Par exemple : "La culture dominante est l'Olivier avec un total de X ha sur l'ensemble de la province."
+            6. FORMAT : Commence TOUJOURS par "Action : [Analyse globale des volets X, Y]...".
+            7. **RÈGLE D'OR** : Si l'utilisateur donne un chiffre (ex: "l'olivier fait 39 000 ha"), vérifie tes calculs et confirme ou rectifie en citant tes sources.
 
             DONNÉES LOCALES (Province de Chefchaouen) :
             \`\`\`
@@ -131,13 +130,16 @@ export const detectCategory = async (apiKey, message, config) => {
 
             ### RÈGLES DE PRIORITÉ (CRITIQUE) :
             1. Analyse en priorité le "Label" du volet. Si l'utilisateur parle de "vaches", le Label "Prod. Animale" est le choix évident.
-            2. Si l'utilisateur parle de "culture", "production", "olivier", "blé", ou "rendement", choisis IMPÉRATIVEMENT un volet de la catégorie "Végétal" (Arbres Fruitiers, Céréales, Maraîchage, etc.).
-            3. Ne choisis JAMAIS "Pentes" ou "Pédologie" pour une question sur les récoltes ou les animaux.
-            4. Un mot-clé SPÉCIFIQUE (ex: navet, blé, caprin, olivier, culture) gagne TOUJOURS sur un mot-clé GÉNÉRIQUE (ex: superficie, nombre, communes).
+            2. Si l'utilisateur parle de "culture", "production", "olivier", "blé", "rendement" ou de l'agriculture en général, choisis IMPÉRATIVEMENT "GLOBAL_VEGETAL".
+            3. Si l'utilisateur parle d'animaux, cheptel, bétail, lait ou viande en général, choisis "GLOBAL_ANIMAL".
+            4. Si l'utilisateur demande "la culture dominante", "GLOBAL_VEGETAL" est le seul choix correct car cela nécessite de comparer Arbres Fruitier, Céréales et Maraîchage.
+            5. Pour une question très précise sur un prix ou une unité de climat, reste sur le GID spécifique.
 
             ### FORMAT DE RÉPONSE ATTENDU
-            Retourne uniquement le GID de la cible la plus pertinente.
-            Réponse : [Numéro du GID] uniquement. Par exemple: 763953801`
+            - Si un seul volet suffit : Retourne uniquement le GID (ex: 763953801).
+            - Si la question est globale sur les cultures : Retourne "GLOBAL_VEGETAL".
+            - Si la question est globale sur les animaux : Retourne "GLOBAL_ANIMAL".
+            Réponse : [GID ou GLOBAL_XXX] uniquement.`
         },
         { role: "user", content: `Question: "${message}"` }
     ];
@@ -154,6 +156,9 @@ export const detectCategory = async (apiKey, message, config) => {
         const result = await response.json();
         const rawResponse = result.choices[0].message.content.trim();
         console.log("Raw Router Response:", rawResponse);
+
+        if (rawResponse.includes("GLOBAL_VEGETAL")) return "GLOBAL_VEGETAL";
+        if (rawResponse.includes("GLOBAL_ANIMAL")) return "GLOBAL_ANIMAL";
 
         // Extract ONLY the numeric GID
         const matches = rawResponse.match(/\d+/);
