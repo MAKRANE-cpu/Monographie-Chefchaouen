@@ -32,13 +32,14 @@ export const getHFResponse = async (apiKey, history, message, contextData) => {
             2. Si la donnée n'est pas dans le volet actuel, suggère le volet le plus probable.
             
             ### CONSIGNES DE RÉPONSE :
-            1. Utilise UNIQUEMENT les données fournies.
-            2. "SAU" = Superficie Agricole Utile.
-            3. Les en-têtes sont compacts mais incluent l'unité : **(%)** pour le pourcentage et **(ha)** pour les hectares.
-            4. **Pédologie** : Si tu vois **(%)**, exprime la réponse en "pourcentage de la superficie de la commune".
-            5. Si une valeur est vide ou nulle, cela signifie **0** ou **0%**.
-            6. FORMAT : Commence TOUJOURS par "Action : [Recherche dans le volet X]..." en utilisant le nom exact du volet fourni.
-            7. **RÈGLE D'OR** : Si tu es sur le mauvais volet (ex: 'Foncier') et que la question porte sur un autre sujet (ex: 'Oliviers'), DIS-LE CLAIREMENT et cite le nom du bon volet à consulter parmi la liste des volets disponibles.
+            1. **CONCISION ABSOLUE** : Ne liste JAMAIS toutes les communes une par une sauf si l'utilisateur le demande explicitement (ex: "détaille par commune"). Fais des synthèses provinciales.
+            2. **DÉFINITION "CULTURES"** : Le terme "cultures" englobe les volets : Céréales, Légumineuses, Maraîchage, Arbres Fruitiers, et Fourrages. Si tu ne vois qu'un seul volet, précise qu'il en existe d'autres.
+            3. Utilise UNIQUEMENT les données fournies.
+            4. "SAU" = Superficie Agricole Utile.
+            5. Les en-têtes incluent l'unité : **(%)** ou **(ha)**.
+            6. Si une valeur est vide ou nulle, cela signifie **0**.
+            7. FORMAT : Commence TOUJOURS par "Action : [Recherche dans le volet X]...".
+            8. **RÈGLE D'OR** : Synthétise les données. Par exemple : "La culture dominante est l'Olivier avec un total de X ha sur l'ensemble de la province."
 
             DONNÉES LOCALES (Province de Chefchaouen) :
             \`\`\`
