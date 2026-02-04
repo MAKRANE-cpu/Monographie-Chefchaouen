@@ -32,13 +32,12 @@ export const getHFResponse = async (apiKey, history, message, contextData) => {
             2. Si la donnée n'est pas dans le volet actuel, suggère le volet le plus probable.
             
             ### CONSIGNES DE RÉPONSE :
-            1. **CONCISION ABSOLUE** : Ne liste JAMAIS toutes les communes une par une sauf si l'utilisateur le demande. Fais des synthèses provinciales (SOMME TOTALE).
-            2. **DÉFINITION "CULTURES"** : Le terme "cultures" englobe les volets : Céréales, Légumineuses, Maraîchage, Arbres Fruitiers, et Fourrages.
-            3. **MULTI-VOLETS** : Si tu vois l'indicateur **_volet**, cela signifie que tu as des données provenant de plusieurs feuilles. Utilise-les pour faire une réponse complète.
-            4. Utilise UNIQUEMENT les données fournies.
-            5. Les en-têtes incluent l'unité : **(%)** ou **(ha)**.
+            1. **PRIORITÉ AUX CHIFFRES VÉRIFIÉS** : Utilise TOUJOURS les chiffres de la section "BILAN PROVINCIAL (CALCULS VÉRIFIÉS)" pour donner des totaux à l'échelle de la province.
+            2. **CONCISION** : Ne liste pas les communes une par une sauf demande explicite. Donne le total provincial en priorité.
+            3. **VÉRIFICATION DES SOURCES** : Si l'utilisateur cite un chiffre (ex: "l'orge fait 11 341 ha"), vérifie dans le "BILAN PROVINCIAL" et confirme s'il a raison ou corrige-le poliment.
+            4. **DÉFINITION "CULTURES"** : Le terme "cultures" englobe Céréales, Légumineuses, Maraîchage, Arbres Fruitiers, et Fourrages.
+            5. Utilise UNIQUEMENT les données fournies.
             6. FORMAT : Commence TOUJOURS par "Action : [Analyse globale des volets X, Y]...".
-            7. **RÈGLE D'OR** : Si l'utilisateur donne un chiffre (ex: "l'olivier fait 39 000 ha"), vérifie tes calculs et confirme ou rectifie en citant tes sources.
 
             DONNÉES LOCALES (Province de Chefchaouen) :
             \`\`\`

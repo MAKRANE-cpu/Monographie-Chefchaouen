@@ -95,24 +95,29 @@ const Chatbot = () => {
                 targetData = useAppStore.getState().data;
             }
 
-            // STEP 3: Format Context (Dense & Clean)
+            // STEP 3: Format Context (Dense & Clean) + PROVINCIAL SUMMATION
+            const provincialTotals = {};
             const dynamicRows = targetData.map(r => {
                 const cleanedRow = {};
                 Object.keys(r).forEach(k => {
                     const val = r[k];
-                    // Skip empty values to keep context dense
+                    // Skip empty or non-data internal keys
                     if (val === null || val === undefined || val === '') return;
-
-                    // Skip internal IDs
                     const lowK = k.toLowerCase();
-                    if (lowK.includes('id') || lowK.includes('code') || k === 'index') return;
+                    if (lowK.includes('id') || lowK.includes('code') || k === 'index' || k === '_volet') return;
 
                     // Clean header but preserve unit
                     let cleanKey = k.includes(':') ? k.split(':').pop().trim() : k;
                     if (k.includes('%')) cleanKey += " (%)";
                     if (k.toLowerCase().includes(' ha')) cleanKey += " (ha)";
 
-                    // Merge similar columns (case-insensitive merge)
+                    // Logic for summation (strictly numeric values that aren't percentages)
+                    const numericVal = parseFloat(String(val).replace(/[^0-9.,]/g, '').replace(',', '.'));
+                    if (!isNaN(numericVal) && !cleanKey.includes('%')) {
+                        provincialTotals[cleanKey] = (provincialTotals[cleanKey] || 0) + numericVal;
+                    }
+
+                    // Merge similar columns (case-insensitive merge) for the per-commune view
                     const existingKey = Object.keys(cleanedRow).find(ek => ek.toLowerCase() === cleanKey.toLowerCase());
                     if (existingKey) {
                         if (typeof val === 'number' && typeof cleanedRow[existingKey] === 'number') {
@@ -127,10 +132,20 @@ const Chatbot = () => {
                 return cleanedRow;
             });
 
+            // Build a very strong Provincial Summary string
+            let provincialSummaryStr = "### BILAN PROVINCIAL (CALCULS VÉRIFIÉS) :\n";
+            Object.entries(provincialTotals).forEach(([key, total]) => {
+                if (total > 0) {
+                    provincialSummaryStr += `- TOTAL Provincial ${key} : ${total.toLocaleString('fr-FR')} (Somme de toutes les communes)\n`;
+                }
+            });
+
             // Compact string format: "Commune: X | Key: Y | ..."
-            const contextStr = dynamicRows.map(row =>
+            const rowsStr = dynamicRows.map(row =>
                 Object.entries(row).map(([k, v]) => `${k}: ${v}`).join(' | ')
             ).join('\n');
+
+            const contextStr = `${provincialSummaryStr}\n### DÉTAILS PAR COMMUNE :\n${rowsStr}`;
 
             // Remove the temporary routing message
             setMessages(prev => prev.slice(0, -1));
