@@ -95,13 +95,17 @@ const Chatbot = () => {
                 targetData = useAppStore.getState().data;
             }
 
-            // STEP 3: Format Context (Dense & Clean) + PROVINCIAL SUMMATION
-            const provincialTotals = {};
+            // STEP 3: Format Context (Dense & Clean) + GROUPED PROVINCIAL AGGREGATION
+            const provincialGroups = {}; // { "Céréales": { "Blé": 100 }, "Arbres": { "Olivier": 39000 } }
+            const isGlobal = detectedGid && detectedGid.startsWith('GLOBAL_');
+
             const dynamicRows = targetData.map(r => {
                 const cleanedRow = {};
+                const sourceVolet = r["_volet"] || "Donnée";
+                if (!provincialGroups[sourceVolet]) provincialGroups[sourceVolet] = {};
+
                 Object.keys(r).forEach(k => {
                     const val = r[k];
-                    // Skip empty or non-data internal keys
                     if (val === null || val === undefined || val === '') return;
                     const lowK = k.toLowerCase();
                     if (lowK.includes('id') || lowK.includes('code') || k === 'index' || k === '_volet') return;
@@ -114,38 +118,50 @@ const Chatbot = () => {
                     // Logic for summation (strictly numeric values that aren't percentages)
                     const numericVal = parseFloat(String(val).replace(/[^0-9.,]/g, '').replace(',', '.'));
                     if (!isNaN(numericVal) && !cleanKey.includes('%')) {
-                        provincialTotals[cleanKey] = (provincialTotals[cleanKey] || 0) + numericVal;
+                        provincialGroups[sourceVolet][cleanKey] = (provincialGroups[sourceVolet][cleanKey] || 0) + numericVal;
                     }
 
-                    // Merge similar columns (case-insensitive merge) for the per-commune view
-                    const existingKey = Object.keys(cleanedRow).find(ek => ek.toLowerCase() === cleanKey.toLowerCase());
-                    if (existingKey) {
-                        if (typeof val === 'number' && typeof cleanedRow[existingKey] === 'number') {
-                            cleanedRow[existingKey] += val;
+                    // Keep commune-level data only if NOT in global mode to save context/prevent confusion
+                    if (!isGlobal) {
+                        const existingKey = Object.keys(cleanedRow).find(ek => ek.toLowerCase() === cleanKey.toLowerCase());
+                        if (existingKey) {
+                            if (typeof val === 'number' && typeof cleanedRow[existingKey] === 'number') {
+                                cleanedRow[existingKey] += val;
+                            } else {
+                                cleanedRow[existingKey] = `${cleanedRow[existingKey]}, ${val}`;
+                            }
                         } else {
-                            cleanedRow[existingKey] = `${cleanedRow[existingKey]}, ${val}`;
+                            cleanedRow[cleanKey] = val;
                         }
-                    } else {
-                        cleanedRow[cleanKey] = val;
                     }
                 });
                 return cleanedRow;
             });
 
-            // Build a very strong Provincial Summary string
-            let provincialSummaryStr = "### BILAN PROVINCIAL (CALCULS VÉRIFIÉS) :\n";
-            Object.entries(provincialTotals).forEach(([key, total]) => {
-                if (total > 0) {
-                    provincialSummaryStr += `- TOTAL Provincial ${key} : ${total.toLocaleString('fr-FR')} (Somme de toutes les communes)\n`;
-                }
+            // Build a very strong hierarchical Provincial Summary
+            let provincialSummaryStr = "### BILAN PROVINCIAL PAR VOLET (CALCULS MATHÉMATIQUES VÉRIFIÉS) :\n";
+            Object.entries(provincialGroups).forEach(([volet, totals]) => {
+                provincialSummaryStr += `\nVOLET : ${volet}\n`;
+                // Sort totals to put dominant cultures first
+                const sortedTotals = Object.entries(totals).sort((a, b) => b[1] - a[1]);
+                sortedTotals.forEach(([key, total]) => {
+                    if (total > 0) {
+                        provincialSummaryStr += `- ${key} : ${total.toLocaleString('fr-FR')} (Total Provincial)\n`;
+                    }
+                });
             });
 
-            // Compact string format: "Commune: X | Key: Y | ..."
-            const rowsStr = dynamicRows.map(row =>
-                Object.entries(row).map(([k, v]) => `${k}: ${v}`).join(' | ')
-            ).join('\n');
+            let contextStr = provincialSummaryStr;
 
-            const contextStr = `${provincialSummaryStr}\n### DÉTAILS PAR COMMUNE :\n${rowsStr}`;
+            // Add commune details only if NOT global
+            if (!isGlobal) {
+                const rowsStr = dynamicRows.map(row =>
+                    Object.entries(row).map(([k, v]) => `${k}: ${v}`).join(' | ')
+                ).join('\n');
+                contextStr += `\n### DÉTAILS PAR COMMUNE :\n${rowsStr}`;
+            } else {
+                contextStr += "\n(Note: Les détails par commune ont été synthétisés dans les totaux ci-dessus pour plus de clarté)";
+            }
 
             // Remove the temporary routing message
             setMessages(prev => prev.slice(0, -1));

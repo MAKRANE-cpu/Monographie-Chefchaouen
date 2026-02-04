@@ -32,12 +32,11 @@ export const getHFResponse = async (apiKey, history, message, contextData) => {
             2. Si la donnée n'est pas dans le volet actuel, suggère le volet le plus probable.
             
             ### CONSIGNES DE RÉPONSE :
-            1. **PRIORITÉ AUX CHIFFRES VÉRIFIÉS** : Utilise TOUJOURS les chiffres de la section "BILAN PROVINCIAL (CALCULS VÉRIFIÉS)" pour donner des totaux à l'échelle de la province.
-            2. **CONCISION** : Ne liste pas les communes une par une sauf demande explicite. Donne le total provincial en priorité.
-            3. **VÉRIFICATION DES SOURCES** : Si l'utilisateur cite un chiffre (ex: "l'orge fait 11 341 ha"), vérifie dans le "BILAN PROVINCIAL" et confirme s'il a raison ou corrige-le poliment.
-            4. **DÉFINITION "CULTURES"** : Le terme "cultures" englobe Céréales, Légumineuses, Maraîchage, Arbres Fruitiers, et Fourrages.
-            5. Utilise UNIQUEMENT les données fournies.
-            6. FORMAT : Commence TOUJOURS par "Action : [Analyse globale des volets X, Y]...".
+            1. **VISION GLOBALE OBLIGATOIRE** : Pour la "culture dominante", examine TOUS les volets listés dans le "BILAN PROVINCIAL" (ex: Arbres Fruitiers, Céréales, Maraîchage). Compare leurs chiffres pour trouver le maximum absolu.
+            2. **PRIORITÉ AUX CHIFFRES VÉRIFIÉS** : Utilise TOUJOURS les chiffres de la section "BILAN PROVINCIAL PAR VOLET" pour tes conclusions.
+            3. **CONCISION ET SYNTHÈSE** : Ne liste pas les communes. Dis simplement : "Sur l'ensemble de la province, la culture dominante est X (Volet Y) avec un total de Z ha, suivie de A (Volet B) avec C ha."
+            4. **VERIFICATION** : Si l'utilisateur donne un chiffre (ex: "l'orge fait 11 341 ha"), confirme-le en utilisant les données du bilan.
+            5. FORMAT : Commence TOUJOURS par "Action : [Analyse globale des volets X, Y]...".
 
             DONNÉES LOCALES (Province de Chefchaouen) :
             \`\`\`
