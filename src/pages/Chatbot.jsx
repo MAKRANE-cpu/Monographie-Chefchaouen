@@ -7,7 +7,7 @@ const Chatbot = () => {
     const { apiKey, data } = useAppStore();
     const [input, setInput] = useState('');
     const [messages, setMessages] = useState([
-        { role: 'model', content: "Bonjour ! Je suis votre assistant du service de la protection sociale et des statistiques. Je suis là pour vous aider à analyser les données de la Monographie Provinciale de Chefchaouen." }
+        { role: 'model', content: "Bonjour ! Je suis votre assistant du service de la protection sociale et des statistiques." }
     ]);
     const [loading, setLoading] = useState(false);
     const messagesEndRef = useRef(null);
@@ -61,7 +61,7 @@ const Chatbot = () => {
             } else {
                 setMessages(prev => {
                     const next = [...prev];
-                    next[next.length - 1].content = `⚠️ Volet non détecté. Utilisation des données par défaut...`;
+                    next[next.length - 1].content = `🔍 Analyse globale... (Suggérez un volet spécifique pour plus de précision)`;
                     return next;
                 });
             }
@@ -148,7 +148,7 @@ const Chatbot = () => {
                             }`}>
                             <div className="flex items-center gap-2 mb-2 opacity-60 text-[10px] uppercase font-bold tracking-wider">
                                 {msg.role === 'user' ? <User size={10} /> : <Sparkles size={10} className="text-amber-400" />}
-                                <span>{msg.role === 'user' ? 'Vous' : 'Expert Monographie'}</span>
+                                <span>{msg.role === 'user' ? 'Vous' : 'Assistant Service'}</span>
                             </div>
                             <div className="whitespace-pre-wrap text-sm leading-relaxed">{msg.content}</div>
                         </div>

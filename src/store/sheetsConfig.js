@@ -5,10 +5,10 @@ export const SHEET_CONFIG = [
     { gid: '1863414135', label: 'Pentes/Relief', category: 'Foncier', keywords: 'pente, montagne, relief, altitude, inclinaison, topographie, colline, plaine' },
     { gid: '36624045', label: 'Pédologie', category: 'Foncier', keywords: 'nature du sol, type de terre, texture, argile, sable, roche, terre végétale, pH, schiste, tirs, limon, terrain, Lahrach, Shiste' },
 
-    { gid: '1841187586', label: 'Céréales', category: 'Végétal', keywords: 'blé tendre, blé dur, orge, maïs, rendement céréalier, semences, récolte, avoine' },
-    { gid: '804566860', label: 'Légumineuses', category: 'Végétal', keywords: 'fèves, lentilles, pois chiches, haricots secs, jilbane' },
-    { gid: '1112163282', label: 'Maraîchage', category: 'Végétal', keywords: 'tomates, oignons, légumes, navet, piment, carotte, pomme de terre, chou, poivron, courge, ail, poireau' },
-    { gid: '763953801', label: 'Arbres Fruitiers', category: 'Végétal', keywords: 'olivier, figuier, amandier, huile, raisin, vigne, plantation, agrumes, prunier, cerisier' },
+    { gid: '1841187586', label: 'Céréales', category: 'Végétal', keywords: 'blé tendre, blé dur, orge, maïs, rendement céréalier, semences, récolte, avoine, culture dominante, production céréales' },
+    { gid: '804566860', label: 'Légumineuses', category: 'Végétal', keywords: 'fèves, lentilles, pois chiches, haricots secs, jilbane, culture, production' },
+    { gid: '1112163282', label: 'Maraîchage', category: 'Végétal', keywords: 'tomates, oignons, légumes, navet, piment, carotte, pomme de terre, chou, poivron, courge, ail, poireau, culture maraîchère, production' },
+    { gid: '763953801', label: 'Arbres Fruitiers', category: 'Végétal', keywords: 'olivier, figuier, amandier, huile, raisin, vigne, plantation, agrumes, prunier, cerisier, culture dominante, plantation, verger' },
     { gid: '1816499777', label: 'Fourrages', category: 'Végétal', keywords: 'luzerne, nourriture bétail, avoine, bersim, sorgho' },
 
     { gid: '89780069', label: 'Irrigation', category: 'Hydraulique', keywords: 'barrage, puits, pompage, eau agricole, réseau, goutte à goutte, seguias, source, oued, périmètre irrigué' },

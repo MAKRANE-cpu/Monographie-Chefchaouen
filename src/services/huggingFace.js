@@ -37,7 +37,8 @@ export const getHFResponse = async (apiKey, history, message, contextData) => {
             3. Les en-têtes sont compacts mais incluent l'unité : **(%)** pour le pourcentage et **(ha)** pour les hectares.
             4. **Pédologie** : Si tu vois **(%)**, exprime la réponse en "pourcentage de la superficie de la commune".
             5. Si une valeur est vide ou nulle, cela signifie **0** ou **0%**.
-            6. FORMAT : Commence par "Action : [Recherche dans le volet X]...".
+            6. FORMAT : Commence TOUJOURS par "Action : [Recherche dans le volet X]..." en utilisant le nom exact du volet fourni.
+            7. Si la réponse nécessite plusieurs volets, réponds pour le volet actuel et suggère d'aller voir les autres.
 
             DONNÉES LOCALES (Province de Chefchaouen) :
             \`\`\`
@@ -128,9 +129,10 @@ export const detectCategory = async (apiKey, message, config) => {
             Tu es l'expert en orientation de données. Ton rôle unique est d'identifier quel "volet" (GID) contient l'information nécessaire pour répondre à l'utilisateur.
 
             ### RÈGLES DE PRIORITÉ (CRITIQUE) :
-            1. Un mot-clé SPÉCIFIQUE (ex: navet, blé, caprin) gagne TOUJOURS sur un mot-clé GÉNÉRIQUE (ex: superficie, nombre). 
+            1. Un mot-clé SPÉCIFIQUE (ex: navet, blé, caprin, olivier, culture) gagne TOUJOURS sur un mot-clé GÉNÉRIQUE (ex: superficie, nombre, communes).
             2. Si l'utilisateur demande "la superficie du navet", tu DOIS choisir le volet "Maraîchage" (1112163282) et NON "Superficies".
             3. Si l'utilisateur demande "le nombre de vaches", tu DOIS choisir "Prod. Animale" (1098465258) et NON "Superficies".
+            4. Si l'utilisateur demande "la culture dominante", privilégie les volets complexes comme "Arbres Fruitiers" ou "Céréales".
 
             ### FORMAT DE RÉPONSE ATTENDU
             Retourne uniquement le GID de la cible la plus pertinente.
