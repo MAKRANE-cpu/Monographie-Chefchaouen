@@ -1,15 +1,15 @@
 export const SHEET_CONFIG = [
-    { gid: '1482909862', label: 'Superficies', category: 'Foncier', keywords: 'superficie totale, hectares, commune, répartition des terres, SAU, Bour, Irrigué, Forêt, Parcours, Inculte, occupation des sols' },
+    { gid: '1482909862', label: 'Occupation du Sol', category: 'Foncier', keywords: 'superficie totale, foncier, répartition des terres, Bour, Irrigué, Forêt, Parcours, Inculte, cadastre, occupation des sols' },
     { gid: '1093980512', label: 'Statut Juridique', category: 'Foncier', keywords: 'melk, habous, collectif, domanial, régime foncier, répartition juridique' },
     { gid: '1969268389', label: 'Taille Explo.', category: 'Foncier', keywords: 'exploitation, petite, moyenne, grande, dimension, nombre exploitation' },
     { gid: '1863414135', label: 'Pentes/Relief', category: 'Foncier', keywords: 'pente, montagne, relief, altitude, inclinaison, topographie, colline, plaine' },
     { gid: '36624045', label: 'Pédologie', category: 'Foncier', keywords: 'nature du sol, type de terre, texture, argile, sable, roche, terre végétale, pH, schiste, tirs, limon, terrain, Lahrach, Shiste' },
 
-    { gid: '1841187586', label: 'Céréales', category: 'Végétal', keywords: 'blé tendre, blé dur, orge, maïs, rendement céréalier, semences, récolte, avoine, culture dominante, production céréales' },
-    { gid: '804566860', label: 'Légumineuses', category: 'Végétal', keywords: 'fèves, lentilles, pois chiches, haricots secs, jilbane, culture, production' },
-    { gid: '1112163282', label: 'Maraîchage', category: 'Végétal', keywords: 'tomates, oignons, légumes, navet, piment, carotte, pomme de terre, chou, poivron, courge, ail, poireau, culture maraîchère, production' },
-    { gid: '763953801', label: 'Arbres Fruitiers', category: 'Végétal', keywords: 'olivier, figuier, amandier, huile, raisin, vigne, plantation, agrumes, prunier, cerisier, culture dominante, plantation, verger' },
-    { gid: '1816499777', label: 'Fourrages', category: 'Végétal', keywords: 'luzerne, nourriture bétail, avoine, bersim, sorgho' },
+    { gid: '1841187586', label: 'Céréales', category: 'Végétal', keywords: 'culture céréalière, blé tendre, blé dur, orge, maïs, rendement, semences, récolte, avoine, production végétale' },
+    { gid: '804566860', label: 'Légumineuses', category: 'Végétal', keywords: 'culture légumineuse, fèves, lentilles, pois chiches, haricots secs, jilbane, production' },
+    { gid: '1112163282', label: 'Maraîchage', category: 'Végétal', keywords: 'culture maraîchère, tomates, oignons, légumes, navet, piment, carotte, pomme de terre, chou, poivron, courge, ail, poireau, production' },
+    { gid: '763953801', label: 'Arbres Fruitiers', category: 'Végétal', keywords: 'culture dominante, olivier, huile d\'olive, figuier, amandier, fruitier, raisin, vigne, plantation, agrumes, prunier, cerisier, verger, production arboricole' },
+    { gid: '1816499777', label: 'Fourrages', category: 'Végétal', keywords: 'culture fourragère, luzerne, nourriture bétail, avoine, bersim, sorgho' },
 
     { gid: '89780069', label: 'Irrigation', category: 'Hydraulique', keywords: 'barrage, puits, pompage, eau agricole, réseau, goutte à goutte, seguias, source, oued, périmètre irrigué' },
     { gid: '1626847998', label: 'Pluviométrie', category: 'Climat', keywords: 'pluie, précipitation, millimètres, mm, météo, chutes de neige, stations méteo, mois pluvieux' },

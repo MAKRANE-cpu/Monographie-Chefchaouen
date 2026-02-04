@@ -38,7 +38,7 @@ export const getHFResponse = async (apiKey, history, message, contextData) => {
             4. **Pédologie** : Si tu vois **(%)**, exprime la réponse en "pourcentage de la superficie de la commune".
             5. Si une valeur est vide ou nulle, cela signifie **0** ou **0%**.
             6. FORMAT : Commence TOUJOURS par "Action : [Recherche dans le volet X]..." en utilisant le nom exact du volet fourni.
-            7. Si la réponse nécessite plusieurs volets, réponds pour le volet actuel et suggère d'aller voir les autres.
+            7. **RÈGLE D'OR** : Si tu es sur le mauvais volet (ex: 'Foncier') et que la question porte sur un autre sujet (ex: 'Oliviers'), DIS-LE CLAIREMENT et cite le nom du bon volet à consulter parmi la liste des volets disponibles.
 
             DONNÉES LOCALES (Province de Chefchaouen) :
             \`\`\`
@@ -114,7 +114,7 @@ export const detectCategory = async (apiKey, message, config) => {
     const API_URL = "https://router.huggingface.co/v1/chat/completions";
     const MODEL_ID = "Qwen/Qwen2.5-7B-Instruct";
 
-    const categoriesStr = config.map(c => `- GID: ${c.gid} | Label: ${c.label} | Keywords: ${c.keywords || ''}`).join("\n");
+    const categoriesStr = config.map(c => `- GID: ${c.gid} | Catégorie: ${c.category} | Label: ${c.label} | Keywords: ${c.keywords || ''}`).join("\n");
 
     const messages = [
         {
@@ -129,14 +129,14 @@ export const detectCategory = async (apiKey, message, config) => {
             Tu es l'expert en orientation de données. Ton rôle unique est d'identifier quel "volet" (GID) contient l'information nécessaire pour répondre à l'utilisateur.
 
             ### RÈGLES DE PRIORITÉ (CRITIQUE) :
-            1. Un mot-clé SPÉCIFIQUE (ex: navet, blé, caprin, olivier, culture) gagne TOUJOURS sur un mot-clé GÉNÉRIQUE (ex: superficie, nombre, communes).
-            2. Si l'utilisateur demande "la superficie du navet", tu DOIS choisir le volet "Maraîchage" (1112163282) et NON "Superficies".
-            3. Si l'utilisateur demande "le nombre de vaches", tu DOIS choisir "Prod. Animale" (1098465258) et NON "Superficies".
-            4. Si l'utilisateur demande "la culture dominante", privilégie les volets complexes comme "Arbres Fruitiers" ou "Céréales".
+            1. Analyse en priorité le "Label" du volet. Si l'utilisateur parle de "vaches", le Label "Prod. Animale" est le choix évident.
+            2. Si l'utilisateur parle de "culture", "production", "olivier", "blé", ou "rendement", choisis IMPÉRATIVEMENT un volet de la catégorie "Végétal" (Arbres Fruitiers, Céréales, Maraîchage, etc.).
+            3. Ne choisis JAMAIS "Pentes" ou "Pédologie" pour une question sur les récoltes ou les animaux.
+            4. Un mot-clé SPÉCIFIQUE (ex: navet, blé, caprin, olivier, culture) gagne TOUJOURS sur un mot-clé GÉNÉRIQUE (ex: superficie, nombre, communes).
 
             ### FORMAT DE RÉPONSE ATTENDU
             Retourne uniquement le GID de la cible la plus pertinente.
-            Réponse : [Numéro du GID]`
+            Réponse : [Numéro du GID] uniquement. Par exemple: 763953801`
         },
         { role: "user", content: `Question: "${message}"` }
     ];
