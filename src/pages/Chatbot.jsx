@@ -99,27 +99,33 @@ const Chatbot = () => {
             const provincialGroups = {};
             const isGlobal = detectedGid && detectedGid.startsWith('GLOBAL_');
 
-            // Helper to transform technical CSV headers into readable labels
+            // Comprehensive Technical Header Mapping
             const headerLabelMap = {
-                'sup_bt_ha': 'Blé Tendre (ha)',
-                'sup_bd_ha': 'Blé Dur (ha)',
-                'sup_orge_ha': 'Orge (ha)',
-                'sup_maïs_ha': 'Maïs (ha)',
-                'sup_avoine_ha': 'Avoine (ha)',
-                'sup_p.terre_ha': 'Pomme de Terre (ha)',
-                'sup_p.terre': 'Pomme de Terre',
-                'sup_oignon_ha': 'Oignon (ha)',
-                'sup_tomate_ha': 'Tomate (ha)',
-                'sup_ail_ha': 'Ail (ha)',
-                'sup_piment_ha': 'Piment (ha)',
-                'sup_aubergine_ha': 'Aubergine (ha)',
-                'sup_choux_ha': 'Choux (ha)',
-                'sup_courgette_ha': 'Courgette (ha)',
-                'rdt_bt': 'Rendement Blé Tendre',
-                'rdt_bd': 'Rendement Blé Dur',
-                'rdt_orge': 'Rendement Orge',
-                'rdt_p.terre': 'Rendement Pomme de Terre',
-                'rdt_oignon': 'Rendement Oignon',
+                // Céréales
+                'sup_bt_ha': 'Blé Tendre (ha)', 'rdt_bt': 'Rendement Blé Tendre (qx/ha)',
+                'sup_bd_ha': 'Blé Dur (ha)', 'rdt_bd': 'Rendement Blé Dur (qx/ha)',
+                'sup_orge_ha': 'Orge (ha)', 'rdt_orge': 'Rendement Orge (qx/ha)',
+                'sup_maïs_ha': 'Maïs (ha)', 'rdt_maïs': 'Rendement Maïs (qx/ha)',
+                'sup_avoine_ha': 'Avoine (ha)', 'rdt_avoine': 'Rendement Avoine (qx/ha)',
+                // Maraîchage
+                'suptomate_ha': 'Tomate (ha)', 'rdt_tomate': 'Rendement Tomate (qx/ha)',
+                'sup_p.terre_ha': 'Pomme de Terre (ha)', 'rdt_p.terre': 'Rendement Pomme de Terre (qx/ha)',
+                'sup_carotte_ha': 'Carotte (ha)', 'rdt_carotte': 'Rendement Carotte (qx/ha)',
+                'sup_navet_ha': 'Navet (ha)', 'rdt_navet': 'Rendement Navet (qx/ha)',
+                'sup_haricot-vert_ha': 'Haricot-vert (ha)', 'rdt_haricot-vert': 'Rendement Haricot-vert (qx/ha)',
+                'sup_p.p v_ha': 'Petit Pois (ha)', 'rdt_p.p v': 'Rendement Petit Pois (qx/ha)',
+                'sup_fève-vert_ha': 'Fève-vert (ha)', 'rdt_fève-vert': 'Rendement Fève-vert (qx/ha)',
+                'sup_oignon_ha': 'Oignon (ha)', 'rdt_oignon': 'Rendement Oignon (qx/ha)',
+                'sup_courgette_ha': 'Courgette (ha)', 'rdt_courgette': 'Rendement Courgette (qx/ha)',
+                'sup_ail_ha': 'Ail (ha)', 'rdt_ail': 'Rendement Ail (qx/ha)',
+                'sup_piment_ha': 'Piment (ha)', 'rdt_piment': 'Rendement Piment (qx/ha)',
+                'sup_aubergine_ha': 'Aubergine (ha)', 'rdt_aubergine': 'Rendement Aubergine (qx/ha)',
+                'sup_choux_ha': 'Choux (ha)', 'rdt_choux': 'Rendement Choux (qx/ha)',
+                'sup_concombre_ha': 'Concombre (ha)', 'rdt_concombre': 'Rendement Concombre (qx/ha)',
+                'sup_pastèque_ha': 'Pastèque (ha)', 'rdt_pastèque': 'Rendement Pastèque (qx/ha)',
+                'sup_melon_ha': 'Melon (ha)', 'rdt_melon': 'Rendement Melon (qx/ha)',
+                // Fallbacks
+                'sup_p.terre': 'Pomme de Terre (ha)',
                 'sup_pomme de terre': 'Pomme de Terre (ha)'
             };
 
@@ -136,28 +142,28 @@ const Chatbot = () => {
                     const lowK = k.toLowerCase();
                     if (lowK.includes('id') || lowK.includes('code') || k === 'index' || k === '_volet') return;
 
-                    // Clean and map technical headers
+                    // Header Normalization & Module Prefixing
                     const normK = normalizeKey(k);
-                    let cleanKey = headerLabelMap[normK] || (k.includes(':') ? k.split(':').pop().trim() : k);
+                    let label = headerLabelMap[normK] || (k.includes(':') ? k.split(':').pop().trim() : k);
 
-                    if (k.includes('%') && !cleanKey.includes('%')) cleanKey += " (%)";
-                    if (lowK.includes(' ha') && !cleanKey.includes('ha')) cleanKey += " (ha)";
+                    // Add units if missing and appropriate
+                    if (k.includes('%') && !label.includes('%')) label += " (%)";
+                    if (lowK.includes(' ha') && !label.includes('(ha)')) label += " (ha)";
+
+                    // Unique Key for the AI (Module Prefixed)
+                    const fullKey = `[${sourceVolet}] ${label}`;
 
                     // Logic for summation
                     const numericVal = parseFloat(String(val).replace(/[^0-9.,]/g, '').replace(',', '.'));
-                    if (!isNaN(numericVal) && !cleanKey.includes('%')) {
-                        const sumK = normalizeKey(cleanKey);
+                    if (!isNaN(numericVal) && !label.includes('%')) {
+                        const sumK = normalizeKey(label);
                         if (!provincialGroups[sourceVolet][sumK]) {
-                            provincialGroups[sourceVolet][sumK] = { total: 0, label: cleanKey };
+                            provincialGroups[sourceVolet][sumK] = { total: 0, label: label };
                         }
                         provincialGroups[sourceVolet][sumK].total += numericVal;
                     }
 
-                    // Strict deduplication based on normalized key
-                    const existingKey = Object.keys(cleanedRow).find(ek => normalizeKey(ek) === normalizeKey(cleanKey));
-                    if (!existingKey) {
-                        cleanedRow[cleanKey] = val;
-                    }
+                    cleanedRow[fullKey] = val;
                 });
                 return cleanedRow;
             });
@@ -176,12 +182,19 @@ const Chatbot = () => {
             });
             provincialSummaryStr += "</PROVINCIAL_TOTALS_VERIFIED>";
 
-            // Compact details string for ALL rows (Essential for ranking)
-            const rowsStr = dynamicRows.map(row =>
-                Object.entries(row).map(([k, v]) => `${k}:${v}`).join('|')
-            ).join('\n');
+            // Explicit line-by-line details for ALL rows
+            const rowsStr = dynamicRows.map(row => {
+                const commune = row["[Donnée] Commune"] || row["[Céréales] Commune"] || row["[Maraîchage] Commune"] || Object.values(row)[0];
+                let rowSummary = `\nCOMMUNE: ${commune}\n`;
+                Object.entries(row).forEach(([k, v]) => {
+                    if (!k.toLowerCase().includes('commune')) {
+                        rowSummary += `  - ${k}: ${v}\n`;
+                    }
+                });
+                return rowSummary;
+            }).join('\n');
 
-            const contextStr = `${provincialSummaryStr}\n\n<DÉTAILS_COMMUNES_POUR_CLASSEMENT>\n${rowsStr}\n</DÉTAILS_COMMUNES_POUR_CLASSEMENT>`;
+            const contextStr = `${provincialSummaryStr}\n\n<DÉTAILS_DES_COMMUNES_POUR_CLASSEMENT>\n${rowsStr}\n</DÉTAILS_DES_COMMUNES_POUR_CLASSEMENT>`;
 
             // Remove the temporary routing message
             setMessages(prev => prev.slice(0, -1));

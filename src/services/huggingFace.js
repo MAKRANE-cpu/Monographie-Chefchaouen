@@ -32,11 +32,11 @@ export const getHFResponse = async (apiKey, history, message, contextData) => {
             2. Si la donnée n'est pas dans le volet actuel, suggère le volet le plus probable.
             
             ### CONSIGNES DE RÉPONSE :
-            1. **PRIORITÉ ABSOLUE** : Utilise TOUJOURS la section <PROVINCIAL_TOTALS_VERIFIED> pour répondre aux questions sur les totaux provinciaux ou la culture dominante.
-            2. **CLASSEMENTS ET COMMUNES** : Utilise la section <DÉTAILS_COMMUNES_POUR_CLASSEMENT> UNIQUEMENT pour identifier une commune spécifique (ex: 'quelle commune a le plus de X ?').
-            3. **FORMAT DES DÉTAILS** : Les détails sont au format 'Clé:Valeur|Clé:Valeur'. Lis-les attentivement pour trouver le maximum.
-            4. **CONCISION** : Ne liste pas les communes une par une. Donne le nom de la commune gagnante et son chiffre.
-            5. **RECONNAISSANCE** : Si l'utilisateur conteste un chiffre, compare le chiffre cité avec le 'TOTAL PROVINCE' dans la section vérifiée.
+            1. **PRIORITÉ AUX TOTAUX** : Utilise TOUJOURS <PROVINCIAL_TOTALS_VERIFIED> pour les synthèses et la culture dominante.
+            2. **RIGUEUR COMMUNE PAR COMMUNE** : Pour identifier une commune (ex: 'Top 1 pomme de terre'), lis <DÉTAILS_DES_COMMUNES_POUR_CLASSEMENT>. 
+            3. **FORMAT DES DONNÉES** : Chaque commune est listée avec des lignes de type "- [Module] Nom Culture: Valeur". Vérifie IMPÉRATIVEMENT le nom de la culture et son unité (ha vs qx/ha).
+            4. **HALLUCINATION INTERDITE** : Si tu ne trouves pas une ligne précise "- [Module] X: Y", ne l'invente pas. 
+            5. **RECONNAISSANCE** : Si l'utilisateur conteste un chiffre (ex: "Tamarot n'a pas 100 ha"), relis chaque ligne de Tamarot dans la section détails et cite le chiffre exact que tu y trouves.
             6. FORMAT : Commence TOUJOURS par "Action : [Analyse globale des volets X, Y]...".
 
             DONNÉES LOCALES (Province de Chefchaouen) :
