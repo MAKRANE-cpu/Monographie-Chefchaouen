@@ -21,11 +21,8 @@ export const getHFResponse = async (apiKey, history, message, contextData) => {
         contextStr = "Aucune donnée disponible dans le tableau actuel.";
     }
 
-    // 2. Build Messages (OpenAI Format)
-    const messages = [
-        {
-            role: "system",
-            content: `Tu es un expert agricole pour la province de Chefchaouen (Maroc). 
+    // 2. Build Messages (OpenAI Format) - REFACTORED FOR MISTRAL
+    const systemPrompt = `Tu es un expert agricole pour la province de Chefchaouen (Maroc). 
             
             ### LOGIQUE DE NAVIGATION :
             1. Avant de répondre, analyse les mots-clés de la question.
@@ -43,27 +40,18 @@ export const getHFResponse = async (apiKey, history, message, contextData) => {
             \`\`\`
             ${contextStr}
             \`\`\`
-            `
-        }
-    ];
-
-    // Add history
-    const validHistory = history.filter(msg => msg.role === 'user' || msg.role === 'model').slice(-4);
-    validHistory.forEach(msg => {
-        messages.push({
-            role: msg.role === 'model' ? 'assistant' : 'user',
-            content: msg.content
-        });
-    });
-
-    // Add current message
-    messages.push({
-        role: "user",
-        content: message
-    });
+            `;
 
     try {
-        console.log("Sending request to HF Router (OpenAI style)...");
+        console.log("Sending request to HF Inference API (Mistral Mode)...");
+        const MODEL_ID = "mistralai/Mistral-7B-Instruct-v0.3";
+        const API_URL = `https://api-inference.huggingface.co/models/${MODEL_ID}`;
+
+        const historyStr = history.filter(m => m.role === 'user' || m.role === 'model')
+            .slice(-4)
+            .map(m => `${m.role === 'model' ? 'Assistant' : 'Utilisateur'}: ${m.content}`)
+            .join('\n');
+
         const response = await fetch(API_URL, {
             headers: {
                 Authorization: `Bearer ${apiKey}`,
@@ -71,11 +59,12 @@ export const getHFResponse = async (apiKey, history, message, contextData) => {
             },
             method: "POST",
             body: JSON.stringify({
-                model: MODEL_ID,
-                messages: messages,
-                max_tokens: 1000,
-                temperature: 0.7,
-                stream: false
+                inputs: `<s>[INST] ${systemPrompt}\n\nHistorique:\n${historyStr}\n\nQuestion: ${message} [/INST]`,
+                parameters: {
+                    max_new_tokens: 1000,
+                    temperature: 0.2,
+                    do_sample: false
+                }
             }),
         });
 
@@ -86,11 +75,11 @@ export const getHFResponse = async (apiKey, history, message, contextData) => {
         }
 
         const result = await response.json();
+        const rawRes = Array.isArray(result) ? result[0].generated_text : result.generated_text;
 
-        if (result.choices && result.choices.length > 0) {
-            return result.choices[0].message.content.trim();
-        } else if (result.error) {
-            throw new Error(result.error.message || result.error);
+        if (rawRes) {
+            // Mistral often returns the prompt too, so we clean it
+            return rawRes.includes('[/INST]') ? rawRes.split('[/INST]').pop().trim() : rawRes.trim();
         }
 
         return "Aucune réponse générée.";
@@ -98,7 +87,7 @@ export const getHFResponse = async (apiKey, history, message, contextData) => {
     } catch (err) {
         console.error("HF API Error:", err);
         if (err.message && err.message.includes('loading')) {
-            return "⏳ Le modèle est en cours de chargement (Cold Start). Réessayez dans 20 secondes.";
+            return "⏳ Le modèle est en cours de chargement sur Hugging Face. Réessayez dans 30 secondes.";
         }
         return "Erreur Hugging Face: " + (err.message || err);
     }
@@ -110,57 +99,43 @@ export const getHFResponse = async (apiKey, history, message, contextData) => {
 export const detectCategory = async (apiKey, message, config) => {
     if (!apiKey) return null;
 
-    const API_URL = "https://router.huggingface.co/v1/chat/completions";
     const MODEL_ID = "Qwen/Qwen2.5-7B-Instruct";
+    const API_URL = `https://api-inference.huggingface.co/models/${MODEL_ID}`;
 
-    const categoriesStr = config.map(c => `- GID: ${c.gid} | Catégorie: ${c.category} | Label: ${c.label} | Keywords: ${c.keywords || ''}`).join("\n");
+    const categoriesStr = config.map(c => `- GID: ${c.gid} | Catégorie: ${c.category} | Label: ${c.label}`).join("\n");
 
-    const messages = [
-        {
-            role: "system",
-            content: `Tu es un moteur de recherche ultra-précis pour un tableau de bord agricole.
-            Ta mission : Retourner UNIQUEMENT le GID de la base de données qui correspond à la question de l'utilisateur.
-
-            BASES DE DONNÉES DISPONIBLES :
-            ${categoriesStr}
-
-            ### RÔLE
-            Tu es l'expert en orientation de données. Ton rôle unique est d'identifier quel "volet" (GID) contient l'information nécessaire pour répondre à l'utilisateur.
-
-            ### RÈGLES DE PRIORITÉ (CRITIQUE) :
-            1. Analyse en priorité le "Label" du volet. Si l'utilisateur parle de "vaches", le Label "Prod. Animale" est le choix évident.
-            2. Si l'utilisateur parle de "culture", "production", "olivier", "blé", "rendement" ou de l'agriculture en général, choisis IMPÉRATIVEMENT "GLOBAL_VEGETAL".
-            3. Si l'utilisateur parle d'animaux, cheptel, bétail, lait ou viande en général, choisis "GLOBAL_ANIMAL".
-            4. Si l'utilisateur demande "la culture dominante", "GLOBAL_VEGETAL" est le seul choix correct car cela nécessite de comparer Arbres Fruitier, Céréales et Maraîchage.
-            5. Pour une question très précise sur un prix ou une unité de climat, reste sur le GID spécifique.
-
-            ### FORMAT DE RÉPONSE ATTENDU
-            - Si un seul volet suffit : Retourne uniquement le GID (ex: 763953801).
-            - Si la question est globale sur les cultures : Retourne "GLOBAL_VEGETAL".
-            - Si la question est globale sur les animaux : Retourne "GLOBAL_ANIMAL".
-            Réponse : [GID ou GLOBAL_XXX] uniquement.`
-        },
-        { role: "user", content: `Question: "${message}"` }
-    ];
+    const systemPrompt = `Tu es un moteur de recherche ultra-précis. 
+    Retourne UNIQUEMENT le GID de la base de données.
+    BASES DISPONIBLES :
+    ${categoriesStr}
+    RÈGLES :
+    - Si Question sur "culture", "production", "olivier", "blé" -> GLOBAL_VEGETAL
+    - Si Question sur "animaux", "vache", "lait" -> GLOBAL_ANIMAL
+    - Sinon GID le plus proche.
+    REPONSE: [GID ou GLOBAL_XXX] uniquement.`;
 
     try {
         const response = await fetch(API_URL, {
             headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
             method: "POST",
-            body: JSON.stringify({ model: MODEL_ID, messages, max_tokens: 50, temperature: 0 }),
+            body: JSON.stringify({
+                inputs: `<|im_start|>system\n${systemPrompt}<|im_end|>\n<|im_start|>user\nQuestion: "${message}"<|im_end|>\n<|im_start|>assistant\n`,
+                parameters: { max_new_tokens: 10, temperature: 0.1 }
+            }),
         });
 
         if (!response.ok) return null;
 
         const result = await response.json();
-        const rawResponse = result.choices[0].message.content.trim();
-        console.log("Raw Router Response:", rawResponse);
+        const rawResponse = Array.isArray(result) ? result[0].generated_text : result.generated_text;
+        const cleaned = rawResponse ? rawResponse.split('assistant\n').pop().trim() : "";
 
-        if (rawResponse.includes("GLOBAL_VEGETAL")) return "GLOBAL_VEGETAL";
-        if (rawResponse.includes("GLOBAL_ANIMAL")) return "GLOBAL_ANIMAL";
+        console.log("Router Response:", cleaned);
 
-        // Extract ONLY the numeric GID
-        const matches = rawResponse.match(/\d+/);
+        if (cleaned.includes("GLOBAL_VEGETAL")) return "GLOBAL_VEGETAL";
+        if (cleaned.includes("GLOBAL_ANIMAL")) return "GLOBAL_ANIMAL";
+
+        const matches = cleaned.match(/\d+/);
         const detectedGid = matches ? matches[0] : null;
 
         if (config.some(c => c.gid === detectedGid)) return detectedGid;
