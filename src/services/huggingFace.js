@@ -4,52 +4,48 @@ const getHFEndpoint = (modelId) => `https://api-inference.huggingface.co/models/
 export const getHFResponse = async (apiKey, history, message, contextData) => {
     if (!apiKey) throw new Error("Le jeton Hugging Face est manquant");
 
-    // Qwen 2.5 7B is the best free-tier model for data analysis
-    const MODEL_ID = "Qwen/Qwen2.5-7B-Instruct";
+    // Using a lighter model (1.5B) which is much more stable on the free tier and avoids timeouts
+    const MODEL_ID = "Qwen/Qwen2.5-1.5B-Instruct";
     const API_URL = getHFEndpoint(MODEL_ID);
 
     let contextStr = (typeof contextData === 'string') ? contextData : "Données indisponibles.";
 
     const systemPrompt = `Tu es l'Expert Agricole Chefchaouen. 
-    ### RÈGLES D'OR :
-    1. PRIORITÉ : Toujours utiliser <PROVINCIAL_TOTALS_VERIFIED> pour les synthèses.
-    2. RIGUEUR : Pour les classements, lis <DÉTAILS_DES_COMMUNES_POUR_CLASSEMENT>.
-    3. FORMAT : Chaque commune est listée ligne par ligne. Ne confonds jamais Superficie et Rendement.
+    ### RÈGLES :
+    1. PRIORITÉ : Toujours <PROVINCIAL_TOTALS_VERIFIED> pour les totaux.
+    2. CLASSEMENTS : Lis <DÉTAILS_DES_COMMUNES_POUR_CLASSEMENT>.
+    3. RIGUEUR : Ne confonds jamais Superficie et Rendement.
     4. VÉRITÉ : Ne cite que les chiffres du contexte.
-    5. FORMAT RÉPONSE : Commence par "Action : [Analyse...]".
+    5. RÉPONSE : Commence par "Action : [Analyse...]".
 
     CONTEXTE :
     ${contextStr}`;
 
-    // Format for Qwen ChatML
-    let prompt = `<|im_start|>system\n${systemPrompt}<|im_end|>\n`;
-
-    // Add history (last 4 messages)
-    history.filter(m => m.role === 'user' || m.role === 'model').slice(-4).forEach(m => {
-        const role = m.role === 'model' ? 'assistant' : 'user';
-        prompt += `<|im_start|>${role}\n${m.content}<|im_end|>\n`;
-    });
-
-    // Add current message
-    prompt += `<|im_start|>user\n${message}<|im_end|>\n<|im_start|>assistant\n`;
+    const prompt = `<|im_start|>system\n${systemPrompt}<|im_end|>\n<|im_start|>user\n${message}<|im_end|>\n<|im_start|>assistant\n`;
 
     try {
-        console.log("Requesting HF Direct (Chat: Qwen)...");
+        console.log("Requesting HF Direct (Qwen 1.5B)...");
         const response = await fetch(API_URL, {
             method: "POST",
             headers: {
                 "Authorization": `Bearer ${apiKey}`,
                 "Content-Type": "application/json",
+                "x-wait-for-model": "true"
             },
             body: JSON.stringify({
                 inputs: prompt,
-                parameters: { max_new_tokens: 1000, temperature: 0.1, do_sample: false }
+                parameters: {
+                    max_new_tokens: 500,
+                    temperature: 0.1,
+                    do_sample: false,
+                    wait_for_model: true
+                }
             }),
         });
 
         if (!response.ok) {
             const errorText = await response.text();
-            throw new Error(`Erreur HF (${response.status}): ${errorText.substring(0, 100)}`);
+            throw new Error(`Erreur HF (${response.status})`);
         }
 
         const result = await response.json();
@@ -62,40 +58,39 @@ export const getHFResponse = async (apiKey, history, message, contextData) => {
 
     } catch (err) {
         console.error("HF API Error:", err);
-        if (err.message.includes('loading')) return "⏳ Chargement du modèle... réessayez dans 30s.";
-        return "Erreur Hugging Face: " + (err.message || "Connexion échouée");
+        return "⚠️ Problème de connexion (Failed to fetch). Cela arrive quand le serveur est surchargé. Réessayez dans 10 secondes.";
     }
 };
 
-/**
- * AI Router: Detects which data category corresponds to the user's question.
- */
 export const detectCategory = async (apiKey, message, config) => {
     if (!apiKey) return null;
 
-    const MODEL_ID = "Qwen/Qwen2.5-1.5B-Instruct"; // 1.5B is faster for detection
+    const MODEL_ID = "Qwen/Qwen2.5-1.5B-Instruct";
     const API_URL = getHFEndpoint(MODEL_ID);
 
     const categoriesStr = config.map(c => `- GID: ${c.gid} | Label: ${c.label}`).join("\n");
 
-    const systemPrompt = `Tu es un trieur de données. Retourne UNIQUEMENT le GID.
+    const systemPrompt = `Retourne UNIQUEMENT le GID.
     BASES :
     ${categoriesStr}
     RÈGLES :
-    - Question sur culture/production/olivier/blé -> GLOBAL_VEGETAL
-    - Question sur animaux/vache/lait -> GLOBAL_ANIMAL
-    - Sinon le GID spécifique.
-    Réponse: [GID]`;
+    - Question sur culture -> GLOBAL_VEGETAL
+    - Question sur animaux -> GLOBAL_ANIMAL
+    - Sinon le GID.`;
 
     const prompt = `<|im_start|>system\n${systemPrompt}<|im_end|>\n<|im_start|>user\n${message}<|im_end|>\n<|im_start|>assistant\n`;
 
     try {
         const response = await fetch(API_URL, {
             method: "POST",
-            headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" },
+            headers: {
+                "Authorization": `Bearer ${apiKey}`,
+                "Content-Type": "application/json",
+                "x-wait-for-model": "true"
+            },
             body: JSON.stringify({
                 inputs: prompt,
-                parameters: { max_new_tokens: 10, temperature: 0.1 }
+                parameters: { max_new_tokens: 10, temperature: 0.1, wait_for_model: true }
             }),
         });
 
@@ -107,8 +102,6 @@ export const detectCategory = async (apiKey, message, config) => {
             text = text.split('assistant\n').pop().split('<|im_end|>')[0].trim();
         }
 
-        console.log("Router Response:", text);
-
         if (text.includes("GLOBAL_VEGETAL")) return "GLOBAL_VEGETAL";
         if (text.includes("GLOBAL_ANIMAL")) return "GLOBAL_ANIMAL";
 
@@ -116,7 +109,6 @@ export const detectCategory = async (apiKey, message, config) => {
         return (matches && config.some(c => c.gid === matches[0])) ? matches[0] : null;
 
     } catch (e) {
-        console.error("Routing Error:", e);
         return null;
     }
 };
