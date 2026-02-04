@@ -7,7 +7,7 @@ const Chatbot = () => {
     const { apiKey, data } = useAppStore();
     const [input, setInput] = useState('');
     const [messages, setMessages] = useState([
-        { role: 'model', content: 'Bonjour ! Je suis votre assistant agricole IA (via Hugging Face). Je peux analyser les données de superficie, rendement et coopératives.' }
+        { role: 'model', content: "Bonjour ! Je suis votre assistant du service de la protection sociale et des statistiques. Je suis là pour vous aider à analyser les données de la Monographie Provinciale de Chefchaouen." }
     ]);
     const [loading, setLoading] = useState(false);
     const messagesEndRef = useRef(null);
@@ -148,7 +148,7 @@ const Chatbot = () => {
                             }`}>
                             <div className="flex items-center gap-2 mb-2 opacity-60 text-[10px] uppercase font-bold tracking-wider">
                                 {msg.role === 'user' ? <User size={10} /> : <Sparkles size={10} className="text-amber-400" />}
-                                <span>{msg.role === 'user' ? 'Vous' : 'IA Analyste'}</span>
+                                <span>{msg.role === 'user' ? 'Vous' : 'Expert Monographie'}</span>
                             </div>
                             <div className="whitespace-pre-wrap text-sm leading-relaxed">{msg.content}</div>
                         </div>
