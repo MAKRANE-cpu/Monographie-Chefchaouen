@@ -12,10 +12,16 @@ export const useAppStore = create((set, get) => ({
     error: null,
     // Priority: Environment Variable (Vercel) > Local Storage (User override)
     apiKey: import.meta.env.VITE_HF_TOKEN || localStorage.getItem('hf_api_key') || '',
+    geminiApiKey: import.meta.env.VITE_GEMINI_TOKEN || localStorage.getItem('gemini_api_key') || '',
 
     setApiKey: (key) => {
         localStorage.setItem('hf_api_key', key);
         set({ apiKey: key });
+    },
+
+    setGeminiApiKey: (key) => {
+        localStorage.setItem('gemini_api_key', key);
+        set({ geminiApiKey: key });
     },
 
     setSheetId: (gid) => {

@@ -3,14 +3,16 @@ import { useAppStore } from '../store/useAppStore';
 import { Save, Shield, Database, Key, CheckCircle } from 'lucide-react';
 
 const Settings = () => {
-    const { apiKey, setApiKey } = useAppStore();
+    const { apiKey, setApiKey, geminiApiKey, setGeminiApiKey } = useAppStore();
     const [inputKey, setInputKey] = useState(apiKey);
+    const [inputGeminiKey, setInputGeminiKey] = useState(geminiApiKey);
     const [isAdmin, setIsAdmin] = useState(false);
     const [clickCount, setClickCount] = useState(0);
 
     const handleSave = () => {
         setApiKey(inputKey);
-        alert('Clé API enregistrée !');
+        setGeminiApiKey(inputGeminiKey);
+        alert('Configurations IA sauvegardées !');
     };
 
     const handleVersionClick = () => {
@@ -41,23 +43,35 @@ const Settings = () => {
                             </div>
                         </div>
 
-                        <div className="space-y-2">
-                            <label className="text-xs text-slate-400 font-medium ml-1">Token Hugging Face</label>
-                            <div className="flex gap-2">
+                        <div className="space-y-4">
+                            <div className="space-y-1">
+                                <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider ml-1">Token Hugging Face</label>
                                 <input
                                     type="password"
                                     value={inputKey}
                                     onChange={(e) => setInputKey(e.target.value)}
                                     placeholder="hf_..."
-                                    className="flex-1 p-3 bg-slate-900/50 border border-slate-700 rounded-xl text-sm text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                                    className="w-full p-3 bg-slate-900/50 border border-slate-700 rounded-xl text-sm text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
                                 />
-                                <button
-                                    onClick={handleSave}
-                                    className="bg-indigo-600 text-white px-6 py-3 rounded-xl hover:bg-indigo-500 flex items-center gap-2 font-medium transition-colors shadow-lg shadow-indigo-600/20"
-                                >
-                                    <Save size={18} /> Sauvegarder
-                                </button>
                             </div>
+
+                            <div className="space-y-1">
+                                <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider ml-1">Clé Gemini (Secours Ultime)</label>
+                                <input
+                                    type="password"
+                                    value={inputGeminiKey}
+                                    onChange={(e) => setInputGeminiKey(e.target.value)}
+                                    placeholder="AIza..."
+                                    className="w-full p-3 bg-slate-900/50 border border-slate-700 rounded-xl text-sm text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                                />
+                            </div>
+
+                            <button
+                                onClick={handleSave}
+                                className="w-full bg-indigo-600 text-white py-3 rounded-xl hover:bg-indigo-500 flex items-center justify-center gap-2 font-bold transition-all shadow-lg shadow-indigo-600/20 active:scale-95"
+                            >
+                                <Save size={18} /> Sauvegarder les configurations
+                            </button>
                         </div>
                     </div>
 

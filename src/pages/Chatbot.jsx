@@ -4,7 +4,7 @@ import { getHFResponse } from '../services/huggingFace';
 import { Send, User, Bot, AlertTriangle, Sparkles } from 'lucide-react';
 
 const Chatbot = () => {
-    const { apiKey, data } = useAppStore();
+    const { apiKey, geminiApiKey, data } = useAppStore();
     const [input, setInput] = useState('');
     const [messages, setMessages] = useState([
         { role: 'model', content: "Bonjour ! Je suis votre assistant du service de la protection sociale et des statistiques." }
@@ -39,7 +39,9 @@ const Chatbot = () => {
             const hfService = await import('../services/huggingFace');
 
             console.log("AI Routing starts for:", input);
-            const detectedGid = await hfService.detectCategory(apiKey, input, SHEET_CONFIG);
+            const routingResult = await hfService.detectCategory(apiKey, input, SHEET_CONFIG);
+            const detectedGid = routingResult?.gid;
+            const detectedIntent = routingResult?.intent || 'SUMMARY';
 
             let targetData = useAppStore.getState().data;
 
@@ -200,18 +202,15 @@ const Chatbot = () => {
                 return hasData ? rowSummary : "";
             }).filter(s => s !== "").join('');
 
-            const contextStr = `${provincialSummaryStr}\n\n<DÉTAILS_DES_COMMUNES_POUR_CLASSEMENT>\n${rowsStr}\n</DÉTAILS_DES_COMMUNES_POUR_CLASSEMENT>`;
+            // SURGICAL PRUNING: Only include details if INTENT is 'DETAIL'
+            const contextStr = detectedIntent === 'DETAIL'
+                ? `${provincialSummaryStr}\n\n<DÉTAILS_DES_COMMUNES_POUR_CLASSEMENT>\n${rowsStr}\n</DÉTAILS_DES_COMMUNES_POUR_CLASSEMENT>`
+                : `${provincialSummaryStr}\n\n[Détails des communes omis pour optimiser la réponse globale - Posez une question sur le classement pour les voir]`;
 
             // Remove the temporary routing message
             setMessages(prev => prev.slice(0, -1));
 
-            const currentLabel = detectedGid
-                ? SHEET_CONFIG.find(c => c.gid === detectedGid)?.label
-                : useAppStore.getState().currentSheetId
-                    ? SHEET_CONFIG.find(c => c.gid === useAppStore.getState().currentSheetId)?.label
-                    : "Données Actuelles";
-
-            const responseText = await hfService.getHFResponse(apiKey, messages, input, contextStr, currentLabel);
+            const responseText = await hfService.getHFResponse(apiKey, messages, input, contextStr, geminiApiKey);
 
             setMessages(prev => [...prev, { role: 'model', content: responseText }]);
         } catch (error) {

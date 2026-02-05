@@ -1,11 +1,11 @@
 import { HfInference } from "@huggingface/inference";
+import { getGeminiResponse } from "./gemini";
 
 /**
  * AI Service for Chefchaouen Dashboard
- * Using Qwen 2.5 family for high-precision agricultural data analysis.
+ * Implementation of the "Triple Shield" Resilience Strategy.
  */
 
-// Exponential backoff retry helper
 const fetchWithRetry = async (fn, maxRetries = 3) => {
     let lastError;
     for (let i = 0; i < maxRetries; i++) {
@@ -33,12 +33,13 @@ const parseResponse = (text) => {
     return text.trim();
 };
 
-export const getHFResponse = async (apiKey, history, message, contextData) => {
+/**
+ * Primary Chat Logic with Gemini Fallback
+ */
+export const getHFResponse = async (apiKey, history, message, contextData, geminiKey = null) => {
     if (!apiKey) throw new Error("Le jeton Hugging Face est manquant");
 
     const hf = new HfInference(apiKey);
-
-    // Tiered Models: Primary (7B) for depth, Fallback (1.5B) for availability
     const PRIMARY_MODEL = "Qwen/Qwen2.5-7B-Instruct";
     const FALLBACK_MODEL = "Qwen/Qwen2.5-1.5B-Instruct";
 
@@ -56,41 +57,43 @@ export const getHFResponse = async (apiKey, history, message, contextData) => {
     ${contextStr}`;
 
     const generatePrompt = (isFallback = false) => {
-        return `<|im_start|>system\n${systemPrompt}${isFallback ? "\n(NOTE: Réponds de manière concise)" : ""}<|im_end|>\n` +
+        return `<|im_start|>system\n${systemPrompt}${isFallback ? "\n(NOTE: Réponds de manière très concise)" : ""}<|im_end|>\n` +
             history.filter(m => m.role === 'user' || m.role === 'model').slice(-4).map(m =>
                 `<|im_start|>${m.role === 'model' ? 'assistant' : 'user'}\n${m.content}<|im_end|>`
             ).join('\n') +
             `\n<|im_start|>user\n${message}<|im_end|>\n<|im_start|>assistant\n`;
     };
 
-    const tryModel = async (modelId, isFallback = false) => {
-        return await hf.textGeneration({
-            model: modelId,
-            inputs: generatePrompt(isFallback),
-            parameters: {
-                max_new_tokens: isFallback ? 400 : 800,
-                temperature: 0.1,
-                wait_for_model: true
-            }
-        });
-    };
-
     try {
         console.log("Tier 1: Requesting Qwen 7B...");
-        const response = await fetchWithRetry(() => tryModel(PRIMARY_MODEL), 2);
+        const response = await fetchWithRetry(() => hf.textGeneration({
+            model: PRIMARY_MODEL,
+            inputs: generatePrompt(),
+            parameters: { max_new_tokens: 800, temperature: 0.1, wait_for_model: true }
+        }), 2);
         return parseResponse(response.generated_text);
     } catch (err) {
-        console.warn("Tier 1 failed (Overloaded). Switching to Tier 2 (1.5B)...");
+        console.warn("Tier 1 failed. Trying Tier 2 (1.5B)...");
         try {
-            const response = await fetchWithRetry(() => tryModel(FALLBACK_MODEL, true), 2);
+            const response = await fetchWithRetry(() => hf.textGeneration({
+                model: FALLBACK_MODEL,
+                inputs: generatePrompt(true),
+                parameters: { max_new_tokens: 400, temperature: 0.1, wait_for_model: true }
+            }), 2);
             return parseResponse(response.generated_text);
         } catch (finalErr) {
-            console.error("HF Final Error:", finalErr);
-            return "⚠️ Les serveurs de calcul sont actuellement saturés. Veuillez réessayer dans quelques instants ou simplifier votre question.";
+            if (geminiKey) {
+                console.warn("HF Overloaded. Using Gemini Tier 3 (Ultimate Resilience)...");
+                return await getGeminiResponse(geminiKey, history, message, contextData);
+            }
+            throw finalErr;
         }
     }
 };
 
+/**
+ * Enhanced Router: Detects GID + INTENT (Summary vs Detail)
+ */
 export const detectCategory = async (apiKey, message, config) => {
     if (!apiKey) return null;
 
@@ -99,14 +102,15 @@ export const detectCategory = async (apiKey, message, config) => {
 
     const categoriesStr = config.map(c => `- GID: ${c.gid} | Label: ${c.label}`).join("\n");
 
-    const systemPrompt = `Tu es un trieur de données. Retourne UNIQUEMENT le GID de la base de données.
-    BASES DISPONIBLES :
+    const systemPrompt = `Tu es un trieur de données. Retourne UNIQUEMENT : [GID]|[INTENT].
+    INTENT doit être 'SUMMARY' (totaux, culture dominante, général) ou 'DETAIL' (classement, top 3, commune spécifique).
+    BASES :
     ${categoriesStr}
     RÈGLES :
-    - Si Question sur "culture", "production", "olivier", "blé" -> GLOBAL_VEGETAL
-    - Si Question sur "animaux", "bétail", "lait" -> GLOBAL_ANIMAL
-    - Sinon, le GID le plus proche.
-    Réponse: [GID] uniquement.`;
+    - Question sur culture, production, agriculture -> GLOBAL_VEGETAL
+    - Question sur animaux, bétail -> GLOBAL_ANIMAL
+    - Sinon, le GID exact.
+    Réponse: [GID]|[INTENT]`;
 
     const prompt = `<|im_start|>system\n${systemPrompt}<|im_end|>\n<|im_start|>user\n${message}<|im_end|>\n<|im_start|>assistant\n`;
 
@@ -114,23 +118,23 @@ export const detectCategory = async (apiKey, message, config) => {
         const response = await fetchWithRetry(() => hf.textGeneration({
             model: MODEL_ID,
             inputs: prompt,
-            parameters: {
-                max_new_tokens: 10,
-                temperature: 0.1,
-                wait_for_model: true
-            }
+            parameters: { max_new_tokens: 20, temperature: 0.1, wait_for_model: true }
         }), 2);
 
-        let text = response.generated_text;
-        if (text && text.includes('assistant\n')) {
-            text = text.split('assistant\n').pop().split('<|im_end|>')[0].trim();
+        let text = parseResponse(response.generated_text);
+        console.log("Router Intent:", text);
+
+        const parts = text.split('|');
+        const detectedGid = parts[0].trim();
+        const intent = parts[1] ? parts[1].trim() : 'SUMMARY';
+
+        const cleanedGid = detectedGid.match(/\d+/) ? detectedGid.match(/\d+/)[0] : detectedGid;
+        const finalIntent = (intent === 'DETAIL') ? 'DETAIL' : 'SUMMARY';
+
+        if (cleanedGid === "GLOBAL_VEGETAL" || cleanedGid === "GLOBAL_ANIMAL" || config.some(c => c.gid === cleanedGid)) {
+            return { gid: cleanedGid, intent: finalIntent };
         }
-
-        if (text.includes("GLOBAL_VEGETAL")) return "GLOBAL_VEGETAL";
-        if (text.includes("GLOBAL_ANIMAL")) return "GLOBAL_ANIMAL";
-
-        const matches = text.match(/\d+/);
-        return (matches && config.some(c => c.gid === matches[0])) ? matches[0] : null;
+        return null;
 
     } catch (e) {
         console.error("Routing Error:", e);
