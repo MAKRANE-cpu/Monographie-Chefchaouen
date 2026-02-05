@@ -182,17 +182,23 @@ const Chatbot = () => {
             });
             provincialSummaryStr += "</PROVINCIAL_TOTALS_VERIFIED>";
 
-            // Explicit line-by-line details for ALL rows
+            // Optimized line-by-line details (skipping empty/zero values for token efficiency)
             const rowsStr = dynamicRows.map(row => {
                 const commune = row["[Donnée] Commune"] || row["[Céréales] Commune"] || row["[Maraîchage] Commune"] || Object.values(row)[0];
                 let rowSummary = `\nCOMMUNE: ${commune}\n`;
+                let hasData = false;
+
                 Object.entries(row).forEach(([k, v]) => {
-                    if (!k.toLowerCase().includes('commune')) {
+                    const isCommuneKey = k.toLowerCase().includes('commune');
+                    const isValueSignificant = v !== null && v !== undefined && v !== '' && v !== 0 && v !== '0';
+
+                    if (!isCommuneKey && isValueSignificant) {
                         rowSummary += `  - ${k}: ${v}\n`;
+                        hasData = true;
                     }
                 });
-                return rowSummary;
-            }).join('\n');
+                return hasData ? rowSummary : "";
+            }).filter(s => s !== "").join('');
 
             const contextStr = `${provincialSummaryStr}\n\n<DÉTAILS_DES_COMMUNES_POUR_CLASSEMENT>\n${rowsStr}\n</DÉTAILS_DES_COMMUNES_POUR_CLASSEMENT>`;
 
