@@ -1,62 +1,85 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
+/**
+ * Gemini Tertiary Fallback Service
+ * Implements an exhaustive model-cycling strategy to bypass 404/Quota errors.
+ */
 export const getGeminiResponse = async (apiKey, history, message, contextData) => {
-    if (!apiKey) throw new Error("API Key is missing");
+    if (!apiKey) throw new Error("API Key Gemini manquante pour le secours.");
 
     const genAI = new GoogleGenerativeAI(apiKey);
 
-    // Tiered model list to handle regional availability and naming conventions
-    const modelNames = ["gemini-1.5-flash", "gemini-1.5-flash-latest", "gemini-pro"];
+    // Exhaustive list of model identifiers to handle regional/API variation
+    const modelList = [
+        "gemini-1.5-flash",
+        "gemini-1.5-flash-latest",
+        "gemini-2.0-flash-exp",
+        "gemini-1.5-pro",
+        "gemini-pro" // Older 1.0 Pro
+    ];
+
     let lastError;
+    const systemText = "Tu es l'Expert Agricole Chefchaouen. Réponds aux questions sur les données agricoles (superficies, rendements, communes) avec une précision absolue de 100%. Cite toujours tes sources si présentes.";
 
-    for (const modelName of modelNames) {
+    for (const modelId of modelList) {
         try {
-            console.log(`Tier 3: Trying Gemini (${modelName})...`);
-            const model = genAI.getGenerativeModel({
-                model: modelName,
-                systemInstruction: "Tu es l'Expert Agricole Chefchaouen. Réponds aux questions sur les données agricoles (superficies, rendements, communes) avec une précision absolue de 100%."
-            });
+            console.log(`Fallback Tier 3: Tentative avec ${modelId}...`);
 
-            const validHistory = history.filter(msg => msg.role === 'user' || msg.role === 'model');
-            let apiHistory = validHistory.slice(-5);
-            if (apiHistory.length > 0 && apiHistory[0].role === 'model') apiHistory.shift();
+            // Models >= 1.5 support systemInstruction
+            const isLatest = modelId.includes("1.5") || modelId.includes("2.0");
 
-            const chat = model.startChat({
-                history: apiHistory.map(msg => ({
-                    role: msg.role === 'user' ? 'user' : 'model',
-                    parts: [{ text: msg.content }],
-                })),
-                generationConfig: { maxOutputTokens: 1000, temperature: 0.1 },
-            });
+            const modelConfig = isLatest
+                ? { model: modelId, systemInstruction: systemText }
+                : { model: modelId };
 
-            // Context preparation
+            const model = genAI.getGenerativeModel(modelConfig);
+
+            // Preparation des messages
+            const validHistory = history.filter(msg => msg.role === 'user' || msg.role === 'model').slice(-4);
+
+            // Context injection
             const contextStr = (typeof contextData === 'string') ? contextData : JSON.stringify(contextData);
+            const fullPrompt = `CONTEXTE DE DONNÉES :\n${contextStr.substring(0, 20000)}\n\nQUESTION : ${message}`;
 
-            const contextPrompt = `
-            [DATA CONTEXT]
-            ${contextStr.substring(0, 15000)}
-            [END CONTEXT]
-            
-            QUESTION: ${message}
-            `;
+            let responseText = "";
 
-            const result = await chat.sendMessage(contextPrompt);
-            const response = await result.response;
-            return response.text();
+            if (isLatest) {
+                // Use structured Chat for 1.5+
+                const chat = model.startChat({
+                    history: validHistory.map(msg => ({
+                        role: msg.role === 'user' ? 'user' : 'model',
+                        parts: [{ text: msg.content }],
+                    })),
+                    generationConfig: { maxOutputTokens: 1000, temperature: 0.1 },
+                });
+                const result = await chat.sendMessage(fullPrompt);
+                const response = await result.response;
+                responseText = response.text();
+            } else {
+                // Fallback to simple generateContent for 1.0 (gemini-pro)
+                // Prepend system prompt to user content
+                const promptFor10 = `${systemText}\n\n${fullPrompt}`;
+                const result = await model.generateContent(promptFor10);
+                const response = await result.response;
+                responseText = response.text();
+            }
+
+            if (responseText) return responseText;
 
         } catch (err) {
-            console.warn(`Gemini tier failed with model ${modelName}:`, err.message);
+            console.warn(`Le modèle ${modelId} a échoué :`, err.message);
             lastError = err;
-            // If it's a quota error, don't try next model as it's project-wide
+            // Stop if quota is exhausted (global to project)
             if (err.message.includes('429') || err.message.includes('Quota')) break;
-            // Otherwise, continue to next model (handle 404s)
+            // Continue for 404 or other model-specific errors
             continue;
         }
     }
 
-    // Final Error management
-    if (lastError.message.includes('429') || lastError.message.includes('Quota')) {
-        return `⚠️ Limite de quota atteinte sur Gemini. Veuillez patienter 1 minute ou reformuler.`;
+    // Final failure management
+    if (lastError?.message.includes('429') || lastError?.message.includes('Quota')) {
+        return "⚠️ Les limites de quotas gratuits de Google sont atteintes. Veuillez patienter une minute.";
     }
-    return "⚠️ Erreur de secours (Gemini): " + lastError.message;
+
+    return `⚠️ Échec du secours Gemini : ${lastError?.message || "Erreur inconnue"}.`;
 };
