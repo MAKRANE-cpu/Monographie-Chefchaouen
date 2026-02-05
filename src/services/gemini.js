@@ -4,64 +4,59 @@ export const getGeminiResponse = async (apiKey, history, message, contextData) =
     if (!apiKey) throw new Error("API Key is missing");
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    // Switch to gemini-1.5-flash (most stable free tier model)
-    const model = genAI.getGenerativeModel({
-        model: "gemini-1.5-flash",
-        systemInstruction: "Tu es l'Expert Agricole Chefchaouen. Réponds aux questions sur les données agricoles (superficies, rendements, communes) avec une précision absolue de 100%."
-    });
 
-    // Optimize History: Keep only last 5 messages to save tokens
-    const validHistory = history.filter(msg => msg.role === 'user' || msg.role === 'model');
-    let apiHistory = validHistory.slice(-5); // Keep only last 5
+    // Tiered model list to handle regional availability and naming conventions
+    const modelNames = ["gemini-1.5-flash", "gemini-1.5-flash-latest", "gemini-pro"];
+    let lastError;
 
-    // Ensure first message is user (Gemini requirement often, though 1.5/2.0 are more flexible, good practice)
-    if (apiHistory.length > 0 && apiHistory[0].role === 'model') {
-        apiHistory.shift();
-    }
+    for (const modelName of modelNames) {
+        try {
+            console.log(`Tier 3: Trying Gemini (${modelName})...`);
+            const model = genAI.getGenerativeModel({
+                model: modelName,
+                systemInstruction: "Tu es l'Expert Agricole Chefchaouen. Réponds aux questions sur les données agricoles (superficies, rendements, communes) avec une précision absolue de 100%."
+            });
 
-    const chat = model.startChat({
-        history: apiHistory.map(msg => ({
-            role: msg.role === 'user' ? 'user' : 'model',
-            parts: [{ text: msg.content }],
-        })),
-        generationConfig: {
-            maxOutputTokens: 1000,
-        },
-    });
+            const validHistory = history.filter(msg => msg.role === 'user' || msg.role === 'model');
+            let apiHistory = validHistory.slice(-5);
+            if (apiHistory.length > 0 && apiHistory[0].role === 'model') apiHistory.shift();
 
-    // Optimize context: CSV format
-    // REDUCED from 60 to 20 rows to save massive amount of tokens
-    let contextStr = "";
-    if (Array.isArray(contextData) && contextData.length > 0) {
-        const keys = Object.keys(contextData[0]);
-        contextStr += keys.join(",") + "\n";
-        // ONLY 20 rows
-        contextData.slice(0, 20).forEach(row => {
-            contextStr += keys.map(k => row[k]).join(",") + "\n";
-        });
-    } else {
-        contextStr = JSON.stringify(contextData);
-    }
+            const chat = model.startChat({
+                history: apiHistory.map(msg => ({
+                    role: msg.role === 'user' ? 'user' : 'model',
+                    parts: [{ text: msg.content }],
+                })),
+                generationConfig: { maxOutputTokens: 1000, temperature: 0.1 },
+            });
 
-    const contextPrompt = `
-  [DATA CONTEXT]
-  ${contextStr.substring(0, 8000)} ... 
-  [END CONTEXT]
-  
-  QUESTION: ${message}
-  `;
+            // Context preparation
+            const contextStr = (typeof contextData === 'string') ? contextData : JSON.stringify(contextData);
 
-    try {
-        const result = await chat.sendMessage(contextPrompt);
-        const response = await result.response;
-        return response.text();
-    } catch (err) {
-        // Log full error for debugging
-        console.error("Gemini API Error:", err);
+            const contextPrompt = `
+            [DATA CONTEXT]
+            ${contextStr.substring(0, 15000)}
+            [END CONTEXT]
+            
+            QUESTION: ${message}
+            `;
 
-        if (err.message.includes('429') || err.message.includes('Quota')) {
-            return `🚨 **Limite atteinte**\nGoogle indique : *"${err.message}"*\n\nJ'ai réduit la taille des données envoyées. Réessayez dans 1 minute.`;
+            const result = await chat.sendMessage(contextPrompt);
+            const response = await result.response;
+            return response.text();
+
+        } catch (err) {
+            console.warn(`Gemini tier failed with model ${modelName}:`, err.message);
+            lastError = err;
+            // If it's a quota error, don't try next model as it's project-wide
+            if (err.message.includes('429') || err.message.includes('Quota')) break;
+            // Otherwise, continue to next model (handle 404s)
+            continue;
         }
-        return "Erreur IA: " + err.message;
     }
+
+    // Final Error management
+    if (lastError.message.includes('429') || lastError.message.includes('Quota')) {
+        return `⚠️ Limite de quota atteinte sur Gemini. Veuillez patienter 1 minute ou reformuler.`;
+    }
+    return "⚠️ Erreur de secours (Gemini): " + lastError.message;
 };
