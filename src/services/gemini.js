@@ -4,10 +4,10 @@ export const getGeminiResponse = async (apiKey, history, message, contextData) =
     if (!apiKey) throw new Error("API Key is missing");
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    // Fallback to gemini-pro (v1.0) as 1.5 seems unavailable for this key/region
+    // Switch to gemini-1.5-flash (most stable free tier model)
     const model = genAI.getGenerativeModel({
-        model: "gemini-exp-1206", // Switched to Experimental (often free) as others have limit 0
-        systemInstruction: "You are an expert agricultural data analyst for the Chefchaouen region in Morocco. Answer questions based on the provided CSV context data succinctly."
+        model: "gemini-1.5-flash",
+        systemInstruction: "Tu es l'Expert Agricole Chefchaouen. Réponds aux questions sur les données agricoles (superficies, rendements, communes) avec une précision absolue de 100%."
     });
 
     // Optimize History: Keep only last 5 messages to save tokens
