@@ -3,14 +3,14 @@ import { useAppStore } from '../store/useAppStore';
 import { Save, Shield, Database, Key, CheckCircle } from 'lucide-react';
 
 const Settings = () => {
-    const { geminiApiKey, setGeminiApiKey } = useAppStore();
-    const [inputGeminiKey, setInputGeminiKey] = useState(geminiApiKey);
+    const { openRouterApiKey, setOpenRouterApiKey } = useAppStore();
+    const [inputOpenRouterKey, setInputOpenRouterKey] = useState(openRouterApiKey);
     const [isAdmin, setIsAdmin] = useState(false);
     const [clickCount, setClickCount] = useState(0);
 
     const handleSave = () => {
-        setGeminiApiKey(inputGeminiKey);
-        alert('Clé API Gemini sauvegardée !');
+        setOpenRouterApiKey(inputOpenRouterKey);
+        alert('Clé API OpenRouter sauvegardée !');
     };
 
     const handleVersionClick = () => {
@@ -36,22 +36,22 @@ const Settings = () => {
                                 <Key size={20} />
                             </div>
                             <div>
-                                <h3 className="font-bold text-white">Configuration IA (Gemini)</h3>
+                                <h3 className="font-bold text-white">Configuration IA (OpenRouter)</h3>
                                 <p className="text-xs text-slate-400">Mode Administrateur Actif</p>
                             </div>
                         </div>
 
                         <div className="space-y-4">
                             <div className="space-y-1">
-                                <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider ml-1">Clé API Google Gemini</label>
+                                <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider ml-1">Clé API OpenRouter</label>
                                 <input
                                     type="password"
-                                    value={inputGeminiKey}
-                                    onChange={(e) => setInputGeminiKey(e.target.value)}
-                                    placeholder="AIza..."
+                                    value={inputOpenRouterKey}
+                                    onChange={(e) => setInputOpenRouterKey(e.target.value)}
+                                    placeholder="sk-or-v1-..."
                                     className="w-full p-3 bg-slate-900/50 border border-slate-700 rounded-xl text-sm text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
                                 />
-                                <p className="text-xs text-slate-500 mt-1 ml-1">Obtenez votre clé gratuitement sur <a href="https://aistudio.google.com/apikey" target="_blank" className="text-indigo-400 hover:underline">Google AI Studio</a></p>
+                                <p className="text-xs text-slate-500 mt-1 ml-1">Obtenez votre clé gratuitement sur <a href="https://openrouter.ai/keys" target="_blank" className="text-indigo-400 hover:underline">OpenRouter</a> (Gratuit avec DeepSeek V3)</p>
                             </div>
 
                             <button

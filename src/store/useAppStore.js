@@ -10,12 +10,12 @@ export const useAppStore = create((set, get) => ({
 
     isLoading: false,
     error: null,
-    // API Key: Gemini only
-    geminiApiKey: import.meta.env.VITE_GEMINI_TOKEN || localStorage.getItem('gemini_api_key') || '',
+    // API Key: OpenRouter only
+    openRouterApiKey: import.meta.env.VITE_OPENROUTER_TOKEN || localStorage.getItem('openrouter_api_key') || '',
 
-    setGeminiApiKey: (key) => {
-        localStorage.setItem('gemini_api_key', key);
-        set({ geminiApiKey: key });
+    setOpenRouterApiKey: (key) => {
+        localStorage.setItem('openrouter_api_key', key);
+        set({ openRouterApiKey: key });
     },
 
     setSheetId: (gid) => {

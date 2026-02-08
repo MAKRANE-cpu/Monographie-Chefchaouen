@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAppStore } from '../store/useAppStore';
-import { getGeminiResponse } from '../services/gemini';
+import { getOpenRouterResponse } from '../services/openrouter';
 import { Send, User, Bot, AlertTriangle, Sparkles } from 'lucide-react';
 
 const Chatbot = () => {
-    const { geminiApiKey, data } = useAppStore();
+    const { openRouterApiKey, data } = useAppStore();
     const [input, setInput] = useState('');
     const [messages, setMessages] = useState([
         { role: 'model', content: "Bonjour ! Je suis votre assistant du service de la protection sociale et des statistiques." }
@@ -20,8 +20,8 @@ const Chatbot = () => {
 
     const handleSend = async () => {
         if (!input.trim()) return;
-        if (!geminiApiKey) {
-            alert("Veuillez configurer votre clé API Gemini dans les Paramètres.");
+        if (!openRouterApiKey) {
+            alert("Veuillez configurer votre clé API OpenRouter dans les Paramètres.");
             return;
         }
 
@@ -206,7 +206,7 @@ const Chatbot = () => {
             // Remove the temporary routing message
             setMessages(prev => prev.slice(0, -1));
 
-            const responseText = await getGeminiResponse(geminiApiKey, messages, input, contextStr);
+            const responseText = await getOpenRouterResponse(openRouterApiKey, messages, input, contextStr);
 
             setMessages(prev => [...prev, { role: 'model', content: responseText }]);
         } catch (error) {
@@ -218,10 +218,10 @@ const Chatbot = () => {
 
     return (
         <div className="flex flex-col h-full relative">
-            {!geminiApiKey && (
+            {!openRouterApiKey && (
                 <div className="absolute top-2 left-2 right-2 z-50 bg-amber-500/90 backdrop-blur text-white p-3 rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg">
                     <AlertTriangle size={16} />
-                    <span>Veuillez configurer votre clé API Gemini dans les Paramètres.</span>
+                    <span>Veuillez configurer votre clé API OpenRouter dans les Paramètres.</span>
                 </div>
             )}
 
@@ -263,11 +263,11 @@ const Chatbot = () => {
                         onKeyPress={(e) => e.key === 'Enter' && handleSend()}
                         placeholder="Posez une question sur les données..."
                         className="flex-1 p-4 bg-slate-900/50 border border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-white placeholder-slate-500"
-                        disabled={loading || !geminiApiKey}
+                        disabled={loading || !openRouterApiKey}
                     />
                     <button
                         onClick={handleSend}
-                        disabled={loading || !geminiApiKey}
+                        disabled={loading || !openRouterApiKey}
                         className="bg-indigo-600 text-white p-4 rounded-xl hover:bg-indigo-500 disabled:opacity-50 transition-all active:scale-95 shadow-lg shadow-indigo-600/20"
                     >
                         <Send size={20} />
