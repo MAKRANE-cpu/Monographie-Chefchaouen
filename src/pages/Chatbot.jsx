@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAppStore } from '../store/useAppStore';
-import { getHFResponse } from '../services/huggingFace';
+import { getGeminiResponse } from '../services/gemini';
 import { Send, User, Bot, AlertTriangle, Sparkles } from 'lucide-react';
 
 const Chatbot = () => {
-    const { apiKey, geminiApiKey, data } = useAppStore();
+    const { geminiApiKey, data } = useAppStore();
     const [input, setInput] = useState('');
     const [messages, setMessages] = useState([
         { role: 'model', content: "Bonjour ! Je suis votre assistant du service de la protection sociale et des statistiques." }
@@ -20,8 +20,8 @@ const Chatbot = () => {
 
     const handleSend = async () => {
         if (!input.trim()) return;
-        if (!apiKey) {
-            alert("Veuillez configurer votre Token Hugging Face dans les Paramètres.");
+        if (!geminiApiKey) {
+            alert("Veuillez configurer votre clé API Gemini dans les Paramètres.");
             return;
         }
 
@@ -34,14 +34,10 @@ const Chatbot = () => {
         setMessages(prev => [...prev, { role: 'model', content: "🔍 Identification du volet de données..." }]);
 
         try {
-            // STEP 1: AI Routing (Detect which sheet contains the answer)
+            // STEP 1: Use current sheet data (no AI routing needed)
             const { SHEET_CONFIG } = await import('../store/sheetsConfig');
-            const hfService = await import('../services/huggingFace');
-
-            console.log("AI Routing starts for:", input);
-            const routingResult = await hfService.detectCategory(apiKey, input, SHEET_CONFIG);
-            const detectedGid = routingResult?.gid;
-            const detectedIntent = routingResult?.intent || 'SUMMARY';
+            const detectedGid = null;
+            const detectedIntent = 'SUMMARY';
 
             let targetData = useAppStore.getState().data;
 
@@ -210,7 +206,7 @@ const Chatbot = () => {
             // Remove the temporary routing message
             setMessages(prev => prev.slice(0, -1));
 
-            const responseText = await hfService.getHFResponse(apiKey, messages, input, contextStr, geminiApiKey);
+            const responseText = await getGeminiResponse(geminiApiKey, messages, input, contextStr);
 
             setMessages(prev => [...prev, { role: 'model', content: responseText }]);
         } catch (error) {
@@ -222,10 +218,10 @@ const Chatbot = () => {
 
     return (
         <div className="flex flex-col h-full relative">
-            {!apiKey && (
+            {!geminiApiKey && (
                 <div className="absolute top-2 left-2 right-2 z-50 bg-amber-500/90 backdrop-blur text-white p-3 rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg">
                     <AlertTriangle size={16} />
-                    <span>Veuillez configurer votre Token Hugging Face dans les Paramètres.</span>
+                    <span>Veuillez configurer votre clé API Gemini dans les Paramètres.</span>
                 </div>
             )}
 
@@ -267,11 +263,11 @@ const Chatbot = () => {
                         onKeyPress={(e) => e.key === 'Enter' && handleSend()}
                         placeholder="Posez une question sur les données..."
                         className="flex-1 p-4 bg-slate-900/50 border border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-white placeholder-slate-500"
-                        disabled={loading || !apiKey}
+                        disabled={loading || !geminiApiKey}
                     />
                     <button
                         onClick={handleSend}
-                        disabled={loading || !apiKey}
+                        disabled={loading || !geminiApiKey}
                         className="bg-indigo-600 text-white p-4 rounded-xl hover:bg-indigo-500 disabled:opacity-50 transition-all active:scale-95 shadow-lg shadow-indigo-600/20"
                     >
                         <Send size={20} />

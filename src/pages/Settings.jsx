@@ -3,16 +3,14 @@ import { useAppStore } from '../store/useAppStore';
 import { Save, Shield, Database, Key, CheckCircle } from 'lucide-react';
 
 const Settings = () => {
-    const { apiKey, setApiKey, geminiApiKey, setGeminiApiKey } = useAppStore();
-    const [inputKey, setInputKey] = useState(apiKey);
+    const { geminiApiKey, setGeminiApiKey } = useAppStore();
     const [inputGeminiKey, setInputGeminiKey] = useState(geminiApiKey);
     const [isAdmin, setIsAdmin] = useState(false);
     const [clickCount, setClickCount] = useState(0);
 
     const handleSave = () => {
-        setApiKey(inputKey);
         setGeminiApiKey(inputGeminiKey);
-        alert('Configurations IA sauvegardées !');
+        alert('Clé API Gemini sauvegardée !');
     };
 
     const handleVersionClick = () => {
@@ -38,25 +36,14 @@ const Settings = () => {
                                 <Key size={20} />
                             </div>
                             <div>
-                                <h3 className="font-bold text-white">Configuration IA (Hugging Face)</h3>
+                                <h3 className="font-bold text-white">Configuration IA (Gemini)</h3>
                                 <p className="text-xs text-slate-400">Mode Administrateur Actif</p>
                             </div>
                         </div>
 
                         <div className="space-y-4">
                             <div className="space-y-1">
-                                <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider ml-1">Token Hugging Face</label>
-                                <input
-                                    type="password"
-                                    value={inputKey}
-                                    onChange={(e) => setInputKey(e.target.value)}
-                                    placeholder="hf_..."
-                                    className="w-full p-3 bg-slate-900/50 border border-slate-700 rounded-xl text-sm text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-                                />
-                            </div>
-
-                            <div className="space-y-1">
-                                <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider ml-1">Clé Gemini (Secours Ultime)</label>
+                                <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider ml-1">Clé API Google Gemini</label>
                                 <input
                                     type="password"
                                     value={inputGeminiKey}
@@ -64,13 +51,14 @@ const Settings = () => {
                                     placeholder="AIza..."
                                     className="w-full p-3 bg-slate-900/50 border border-slate-700 rounded-xl text-sm text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
                                 />
+                                <p className="text-xs text-slate-500 mt-1 ml-1">Obtenez votre clé gratuitement sur <a href="https://aistudio.google.com/apikey" target="_blank" className="text-indigo-400 hover:underline">Google AI Studio</a></p>
                             </div>
 
                             <button
                                 onClick={handleSave}
                                 className="w-full bg-indigo-600 text-white py-3 rounded-xl hover:bg-indigo-500 flex items-center justify-center gap-2 font-bold transition-all shadow-lg shadow-indigo-600/20 active:scale-95"
                             >
-                                <Save size={18} /> Sauvegarder les configurations
+                                <Save size={18} /> Sauvegarder la configuration
                             </button>
                         </div>
                     </div>
