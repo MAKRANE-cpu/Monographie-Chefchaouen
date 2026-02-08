@@ -14,7 +14,7 @@ const fetchWithRetry = async (fn, maxRetries = 3) => {
         } catch (err) {
             lastError = err;
             if (err.message.includes("503") || err.message.toLowerCase().includes("overloaded") || err.message.toLowerCase().includes("loading")) {
-                const wait = Math.pow(2, i) * 1000;
+                const wait = Math.pow(2, i) * 2000;
                 console.log(`HF busy, retrying in ${wait}ms...`);
                 await new Promise(resolve => setTimeout(resolve, wait));
                 continue;
@@ -41,7 +41,8 @@ export const getHFResponse = async (apiKey, history, message, contextData, gemin
 
     const hf = new HfInference(apiKey);
     const PRIMARY_MODEL = "Qwen/Qwen2.5-7B-Instruct";
-    const FALLBACK_MODEL = "Qwen/Qwen2.5-1.5B-Instruct";
+    const SECONDARY_MODEL = "Qwen/Qwen2.5-1.5B-Instruct";
+    const TERTIARY_MODEL = "mistralai/Mistral-7B-Instruct-v0.3";
 
     let contextStr = (typeof contextData === 'string') ? contextData : "Données indisponibles.";
 
@@ -73,20 +74,30 @@ export const getHFResponse = async (apiKey, history, message, contextData, gemin
         }), 2);
         return parseResponse(response.generated_text);
     } catch (err) {
-        console.warn("Tier 1 failed. Trying Tier 2 (1.5B)...");
+        console.warn("Tier 1 failed. Trying Tier 2 (Qwen 1.5B)...");
         try {
             const response = await fetchWithRetry(() => hf.textGeneration({
-                model: FALLBACK_MODEL,
+                model: SECONDARY_MODEL,
                 inputs: generatePrompt(true),
                 parameters: { max_new_tokens: 400, temperature: 0.1, wait_for_model: true }
             }), 2);
             return parseResponse(response.generated_text);
-        } catch (finalErr) {
-            if (geminiKey) {
-                console.warn("HF Overloaded. Using Gemini Tier 3 (Ultimate Resilience)...");
-                return await getGeminiResponse(geminiKey, history, message, contextData);
+        } catch (tier2Err) {
+            console.warn("Tier 2 failed. Trying Tier 2.5 (Mistral 7B)...");
+            try {
+                const response = await fetchWithRetry(() => hf.textGeneration({
+                    model: TERTIARY_MODEL,
+                    inputs: generatePrompt(true),
+                    parameters: { max_new_tokens: 400, temperature: 0.1, wait_for_model: true }
+                }), 1);
+                return parseResponse(response.generated_text);
+            } catch (finalErr) {
+                if (geminiKey) {
+                    console.warn("HF Overloaded. Using Gemini Tier 3 (Ultimate Resilience)...");
+                    return await getGeminiResponse(geminiKey, history, message, contextData);
+                }
+                throw finalErr;
             }
-            throw finalErr;
         }
     }
 };
