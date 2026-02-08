@@ -32,7 +32,24 @@ export const getGeminiResponse = async (apiKey, history, message, contextData) =
             });
 
             // Clean history to stay within context limits
-            const validHistory = history.filter(msg => msg.role === 'user' || msg.role === 'model').slice(-4);
+            // Gemini API Requirement: First message must be 'user'
+            let validHistory = history.filter(msg => msg.role === 'user' || msg.role === 'model');
+
+            // Find the first 'user' message
+            const firstUserIndex = validHistory.findIndex(msg => msg.role === 'user');
+            if (firstUserIndex !== -1) {
+                validHistory = validHistory.slice(firstUserIndex);
+            } else {
+                validHistory = []; // No user messages yet
+            }
+
+            // Take the last 4 messages to keep context small
+            validHistory = validHistory.slice(-4);
+
+            // Re-check: if slice(-4) made it start with 'model', remove it
+            if (validHistory.length > 0 && validHistory[0].role === 'model') {
+                validHistory = validHistory.slice(1);
+            }
 
             // Context injection - Truncated to avoid token overflow on free tier
             const contextStr = (typeof contextData === 'string') ? contextData : JSON.stringify(contextData);
