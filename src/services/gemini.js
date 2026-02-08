@@ -9,13 +9,12 @@ export const getGeminiResponse = async (apiKey, history, message, contextData) =
 
     const genAI = new GoogleGenerativeAI(apiKey);
 
-    // Priority list for 2025/2026: 2.0 Flash is currently the best free tier option
+    // Updated Model List for 2025/2026: Priority to 2.0 Flash then stable 1.5 versions
     const modelList = [
-        "gemini-2.0-flash-exp",
+        "gemini-2.0-flash",
         "gemini-1.5-flash",
-        "gemini-1.5-flash-latest",
-        "gemini-1.5-pro",
-        "gemini-1.5-pro-latest"
+        "gemini-1.5-flash-8b",
+        "gemini-1.5-pro"
     ];
 
     let lastError;
@@ -83,7 +82,8 @@ export const getGeminiResponse = async (apiKey, history, message, contextData) =
             lastError = err;
 
             // If it's a structural 404 (Not Found), continue to next model
-            if (errMsg.includes('404') || errMsg.includes('not found')) {
+            if (errMsg.includes('404') || errMsg.toLowerCase().includes('not found')) {
+                console.warn(`Modèle [${modelId}] non disponible (404).`);
                 continue;
             }
 
