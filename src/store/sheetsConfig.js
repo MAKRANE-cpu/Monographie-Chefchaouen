@@ -23,6 +23,6 @@ export const SHEET_CONFIG = [
 
     { gid: '1060919262', label: 'Population', category: 'Social', keywords: 'habitants, rural, urbain, démographie, recensement, RGPH, accroissement, population totale, nombre de personnes' },
     { gid: '1979562049', label: 'Habitants (Détail)', category: 'Social', keywords: 'ménages, famille, densité, sexe, tranches age, pyramide des âges, alphabétisation, scolarisation' },
-    { gid: '1244386954', label: 'Coopératives', category: 'Social', keywords: 'asso, groupements, organisation, membres, adherents, association, date création, coopérative agricole, GIE' },
+    { gid: '1244386954', label: 'Coopératives', category: 'Social', keywords: 'asso, groupements, organisation, membres, adherents, association, date création, coopérative agricole, GIE, activités, coopératives' },
     { gid: '523486635', label: 'Agro-Industrie', category: 'Eco', keywords: 'usines, transformation, trituration, moulins, huileries, huile olive, maasras, capacité pressage, unité industrielle, valorisation' },
 ];
