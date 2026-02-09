@@ -134,6 +134,7 @@ const Dashboard = () => {
 
         return {
             chartData: finalChartData,
+            tableData: chartData, // Always use detailed rows for the table
             areaColumns,
             yieldColumns,
             otherColumns: (areaColumns.length === 0 && yieldColumns.length === 0) ? chartsToShow : otherColumns,
@@ -260,12 +261,12 @@ const Dashboard = () => {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-800 text-slate-300">
-                                    {processedData.chartData.map((row, i) => (
+                                    {processedData.tableData.map((row, i) => (
                                         <tr key={i} className="hover:bg-white/5">
                                             {processedData.allKeys.map(col => (
                                                 <td key={col} className={`p-3 border-r border-slate-800/50 ${col === processedData.allKeys[0] ? 'font-medium text-white sticky left-0 bg-slate-900' : ''}`}>
-                                                    {/* Render raw value */}
-                                                    {row._raw ? row._raw[col] : row[col]}
+                                                    {/* Render raw value from _raw if available (to get accurate CSV values) */}
+                                                    {String(row._raw ? row._raw[col] : row[col] || '-')}
                                                 </td>
                                             ))}
                                         </tr>
