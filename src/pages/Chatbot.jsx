@@ -44,12 +44,12 @@ const Chatbot = () => {
             let detectedIntent = 'DETAIL'; // Always use DETAIL to include commune data
 
             // Search for matching sheet with scoring
-const matchedConfig = detectBestSheet(input, SHEET_CONFIG);
+            const matchedConfig = detectBestSheet(input, SHEET_CONFIG);
 
-if (matchedConfig) {
-    detectedGid = matchedConfig.gid;
-    console.log(`✅ Detected: ${matchedConfig.label}`);
-}
+            if (matchedConfig) {
+                detectedGid = matchedConfig.gid;
+                console.log(`✅ Detected: ${matchedConfig.label}`);
+            }
 
             let targetData = useAppStore.getState().data;
 
@@ -186,21 +186,29 @@ if (matchedConfig) {
 
             // Optimized line-by-line details (skipping empty/zero values for token efficiency)
             const rowsStr = dynamicRows.map(row => {
-                const commune = row["[Donnée] Commune"] || row["[Céréales] Commune"] || row["[Maraîchage] Commune"] || Object.values(row)[0];
+                const commune = row["[Donnée] Commune"] || row["[Céréales] Commune"] || row["[Maraîchage] Commune"] || row["[Abattoirs] Commune"] || Object.values(row)[0];
+                if (!commune || String(commune).toLowerCase().includes('total') || String(commune).toLowerCase().includes('s/t')) return "";
+
                 let rowSummary = `\nCOMMUNE: ${commune}\n`;
-                let hasData = false;
+                let hasDetailedData = false;
 
                 Object.entries(row).forEach(([k, v]) => {
                     const isCommuneKey = k.toLowerCase().includes('commune');
-                    const isValueSignificant = v !== null && v !== undefined && v !== '' && v !== 0 && v !== '0';
+                    const isSignificant = v !== null && v !== undefined && v !== '' && v !== 0 && v !== '0';
 
-                    if (!isCommuneKey && isValueSignificant) {
+                    if (!isCommuneKey && isSignificant) {
                         rowSummary += `  - ${k}: ${v}\n`;
-                        hasData = true;
+                        hasDetailedData = true;
                     }
                 });
-                return hasData ? rowSummary : "";
-            }).filter(s => s !== "").join('');
+
+                // If no detailed data, mention it's zero/empty for this commune
+                if (!hasDetailedData) {
+                    rowSummary += `  - (Aucune donnée spécifique enregistrée pour cette commune dans ce volet)\n`;
+                }
+
+                return rowSummary;
+            }).join('');
 
             // SURGICAL PRUNING: Only include details if INTENT is 'DETAIL'
             const contextStr = detectedIntent === 'DETAIL'
