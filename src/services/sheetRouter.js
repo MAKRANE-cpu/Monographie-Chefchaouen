@@ -6,8 +6,8 @@
 const normalizeText = (text) => {
     return text.toLowerCase()
         .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // Supprime les accents
-        .replace(/\b(de|du|des|le|la|les|un|une|l|d)\b/g, ' ') // Supprime les stop-words
-        .replace(/(.)\1+/g, '$1') // Réduit les lettres doubles (ex: copp -> cop, coop -> cop)
+        .replace(/\b(de|du|des|le|la|les|un|une|l|d|nombre|nbr|quantite|liste)\b/g, ' ') // Supprime les stop-words
+        .replace(/(.)\1+/g, '$1') // Réduit les lettres doubles
         .replace(/\s+/g, ' ')
         .trim();
 };
