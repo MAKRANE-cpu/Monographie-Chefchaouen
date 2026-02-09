@@ -1,6 +1,6 @@
 /**
- * Smart Sheet Router - Version Améliorée
- * Priorité aux expressions de plusieurs mots
+ * Smart Sheet Router - Version Robuste
+ * Gère les variations (de/du/des) et les fautes mineures
  */
 
 export const detectBestSheet = (userQuestion, sheetConfigs) => {
@@ -8,20 +8,35 @@ export const detectBestSheet = (userQuestion, sheetConfigs) => {
     let bestMatch = null;
     let bestScore = 0;
 
+    // Nettoyer la question pour faciliter le matching (enlever de/du/des)
+    const normalizedInput = inputLower.replace(/\b(de|du|des|le|la|les|un|une)\b/g, ' ').replace(/\s+/g, ' ').trim();
+
     sheetConfigs.forEach(config => {
         const keywords = config.keywords.toLowerCase().split(',');
         let score = 0;
 
         keywords.forEach(kw => {
             const keyword = kw.trim();
+            const normalizedKeyword = keyword.replace(/\b(de|du|des|le|la|les|un|une)\b/g, ' ').replace(/\s+/g, ' ').trim();
+
+            // Match exact de l'expression (priorité maximale)
             if (inputLower.includes(keyword)) {
-                // Multi-word phrases get MUCH higher priority
                 const wordCount = keyword.split(' ').length;
-                if (wordCount > 1) {
-                    score += keyword.length * wordCount * 3; // Triple boost for phrases
-                } else {
-                    score += keyword.length;
-                }
+                score += keyword.length * wordCount * 5;
+            }
+            // Match normalisé (flexible : nature de sol vs nature du sol)
+            else if (normalizedInput.includes(normalizedKeyword)) {
+                const wordCount = normalizedKeyword.split(' ').length;
+                score += normalizedKeyword.length * wordCount * 3;
+            }
+            // Match partiel par mot
+            else {
+                const kwWords = normalizedKeyword.split(' ').filter(w => w.length > 3);
+                kwWords.forEach(word => {
+                    if (normalizedInput.includes(word)) {
+                        score += word.length;
+                    }
+                });
             }
         });
 
@@ -30,6 +45,12 @@ export const detectBestSheet = (userQuestion, sheetConfigs) => {
             bestMatch = config;
         }
     });
+
+    if (bestMatch && bestScore > 0) {
+        console.log(`🎯 Router Best Match: ${bestMatch.label} (Score: ${bestScore})`);
+    } else {
+        console.warn("⚠️ No confident match found by Router");
+    }
 
     return bestMatch && bestScore > 0 ? bestMatch : null;
 };
