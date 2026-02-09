@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAppStore } from '../store/useAppStore';
 import { getOpenRouterResponse } from '../services/openrouter';
+import { detectBestSheet } from '../services/sheetRouter';
 import { Send, User, Bot, AlertTriangle, Sparkles } from 'lucide-react';
 
 const Chatbot = () => {
@@ -34,36 +35,26 @@ const Chatbot = () => {
         setMessages(prev => [...prev, { role: 'model', content: "🔍 Identification du volet de données..." }]);
 
         try {
-            // STEP 1: Use current sheet data (no AI routing needed)
+            // STEP 1: Keyword-based routing (no AI needed)
             const { SHEET_CONFIG } = await import('../store/sheetsConfig');
-            const detectedGid = null;
-            const detectedIntent = 'SUMMARY';
+
+            // Simple keyword detection
+            const inputLower = input.toLowerCase();
+            let detectedGid = null;
+            let detectedIntent = 'DETAIL'; // Always use DETAIL to include commune data
+
+            // Search for matching sheet with scoring
+const matchedConfig = detectBestSheet(input, SHEET_CONFIG);
+
+if (matchedConfig) {
+    detectedGid = matchedConfig.gid;
+    console.log(`✅ Detected: ${matchedConfig.label}`);
+}
 
             let targetData = useAppStore.getState().data;
 
             // STEP 2: Fetch and use the correct data
-            if (detectedGid && detectedGid.startsWith('GLOBAL_')) {
-                const category = detectedGid === 'GLOBAL_VEGETAL' ? 'Végétal' : 'Animal';
-                const relevantConfigs = SHEET_CONFIG.filter(c => c.category === category);
-
-                setMessages(prev => {
-                    const next = [...prev];
-                    next[next.length - 1].content = `🌐 Analyse globale du volet **${category}** (${relevantConfigs.length} modules)...`;
-                    return next;
-                });
-
-                const allData = await useAppStore.getState().loadAllSheets(relevantConfigs);
-
-                // Merge all rows from these sheets
-                targetData = [];
-                relevantConfigs.forEach(c => {
-                    if (allData[c.gid]) {
-                        // Tag each row with its source label for AI clarity
-                        const taggedRows = allData[c.gid].map(r => ({ ...r, "_volet": c.label }));
-                        targetData.push(...taggedRows);
-                    }
-                });
-            } else if (detectedGid) {
+            if (detectedGid) {
                 const configItem = SHEET_CONFIG.find(c => c.gid === detectedGid);
                 setMessages(prev => {
                     const next = [...prev];
@@ -78,10 +69,23 @@ const Chatbot = () => {
                     targetData = useAppStore.getState().sheets[detectedGid];
                 }
             } else {
+                // If no specific match, load all vegetable data (most common queries)
+                const vegetalConfigs = SHEET_CONFIG.filter(c => c.category === 'Végétal');
                 setMessages(prev => {
                     const next = [...prev];
-                    next[next.length - 1].content = `🔍 Analyse globale... (Suggérez un volet spécifique pour plus de précision)`;
+                    next[next.length - 1].content = `🌐 Recherche dans toutes les données végétales...`;
                     return next;
+                });
+
+                const allData = await useAppStore.getState().loadAllSheets(vegetalConfigs);
+
+                // Merge all rows from these sheets
+                targetData = [];
+                vegetalConfigs.forEach(c => {
+                    if (allData[c.gid]) {
+                        const taggedRows = allData[c.gid].map(r => ({ ...r, "_volet": c.label }));
+                        targetData.push(...taggedRows);
+                    }
                 });
             }
 
