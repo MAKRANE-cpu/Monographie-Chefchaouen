@@ -19,10 +19,10 @@ const Dashboard = () => {
     const currentData = useMemo(() => sheets[activeTab] || [], [sheets, activeTab]);
 
     const processedData = useMemo(() => {
-        if (!currentData.length) return { chartData: [], areaColumns: [], yieldColumns: [], otherColumns: [], allKeys: [] };
+        if (!currentData.length) return { chartData: [], tableData: [], areaColumns: [], yieldColumns: [], otherColumns: [], allKeys: [] };
 
         const validRows = currentData.filter(r => r && typeof r === 'object');
-        if (!validRows.length) return { chartData: [], areaColumns: [], yieldColumns: [], otherColumns: [], allKeys: [] };
+        if (!validRows.length) return { chartData: [], tableData: [], areaColumns: [], yieldColumns: [], otherColumns: [], allKeys: [] };
 
         const firstRow = validRows[0];
         const keys = Object.keys(firstRow);
