@@ -82,43 +82,51 @@ const Dashboard = () => {
             return item;
         }).filter(Boolean);
 
-        // REORDER COLUMNS FOR COOPERATIVES
-        // If "Nom Coopérative" and "N.adhérent" exist, put them first
-        let finalKeys = [...keys];
-        const isCoop = keys.some(k => k.includes('Nom Coopérative'));
+        // NORMALIZATION HELPER FOR HEADERS
+        const norm = (s) => String(s || '').toLowerCase()
+            .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // remove accents
+            .replace(/['’‘`]/g, "'") // normalize apostrophes
+            .replace(/[^a-z0-9]/g, ''); // alphanumeric only
 
+        // REORDER COLUMNS FOR COOPERATIVES
+        const isCoop = keys.some(k => norm(k).includes('nomcooperative'));
+        let finalKeys = [...keys];
         let finalChartData = chartData;
 
         if (isCoop) {
-            const priorityCols = ['Nom Coopérative', 'N.adhérent'];
-            const otherCols = keys.filter(k => !priorityCols.some(p => k.includes(p)) && k !== nameKey);
-            const foundPriority = keys.filter(k => priorityCols.some(p => k.includes(p)));
+            // Find specific keys by normalized matching
+            const keyMap = {
+                name: keys.find(k => norm(k).includes('commune')),
+                nom: keys.find(k => norm(k).includes('nomcooperative')),
+                type: keys.find(k => norm(k).includes('activite')),
+                adherents: keys.find(k => norm(k).includes('adherent'))
+            };
+
+            const priorityCols = [keyMap.nom, keyMap.adherents].filter(Boolean);
+            const otherCols = keys.filter(k => !priorityCols.includes(k) && k !== keyMap.name);
 
             // Reconstruct: [NameKey, ...Priority, ...Others]
-            finalKeys = [nameKey, ...foundPriority, ...otherCols].filter(k => keys.includes(k));
+            finalKeys = [keyMap.name || nameKey, ...priorityCols, ...otherCols].filter(k => keys.includes(k));
 
             // AGGREGATION LOGIC FOR COOPERATIVES
             const groups = {};
             chartData.forEach(item => {
-                if (!groups[item.name]) {
-                    groups[item.name] = { name: item.name, _coops: [] };
-                    // Reset numeric counters to 0 for the base group object to avoid double counting initial row if we simply copied it
-                    // But actually, we want to sum. So let's start with the first item as base, 
-                    // and subsequent items add to it.
-                    // Better approach: Init with 0 for metrics we want to sum.
-                    chartsToShow.forEach(key => groups[item.name][key] = 0);
+                const groupName = item.name;
+                if (!groups[groupName]) {
+                    groups[groupName] = { name: groupName, _coops: [] };
+                    chartsToShow.forEach(key => groups[groupName][key] = 0);
                 }
 
-                // Sum metrics
+                // Sum metrics (if any)
                 chartsToShow.forEach(key => {
-                    groups[item.name][key] += (Number(item[key]) || 0);
+                    groups[groupName][key] += (Number(item[key]) || 0);
                 });
 
-                // Add to detailed list
-                groups[item.name]._coops.push({
-                    nom: item['Nom Coopérative'] || item._raw['Nom Coopérative'] || '-',
-                    type: item['Type d’activité'] || item._raw['Type d’activité'] || '-',
-                    adherents: item['N.adhérent'] || item._raw['N.adhérent'] || 0
+                // Add to detailed list using mapped keys
+                groups[groupName]._coops.push({
+                    nom: item._raw[keyMap.nom] || '-',
+                    type: item._raw[keyMap.type] || '-',
+                    adherents: item._raw[keyMap.adherents] || 0
                 });
             });
             finalChartData = Object.values(groups);
