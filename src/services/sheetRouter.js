@@ -1,6 +1,6 @@
 /**
- * Smart Sheet Router
- * Détecte la meilleure feuille Google Sheets basée sur les mots-clés
+ * Smart Sheet Router - Version Améliorée
+ * Priorité aux expressions de plusieurs mots
  */
 
 export const detectBestSheet = (userQuestion, sheetConfigs) => {
@@ -15,8 +15,13 @@ export const detectBestSheet = (userQuestion, sheetConfigs) => {
         keywords.forEach(kw => {
             const keyword = kw.trim();
             if (inputLower.includes(keyword)) {
-                // Longer keywords = more specific = higher priority
-                score += keyword.length;
+                // Multi-word phrases get MUCH higher priority
+                const wordCount = keyword.split(' ').length;
+                if (wordCount > 1) {
+                    score += keyword.length * wordCount * 3; // Triple boost for phrases
+                } else {
+                    score += keyword.length;
+                }
             }
         });
 
